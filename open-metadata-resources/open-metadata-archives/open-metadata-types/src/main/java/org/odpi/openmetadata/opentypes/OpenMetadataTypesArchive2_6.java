@@ -260,7 +260,7 @@ public class OpenMetadataTypesArchive2_6
      */
 
     /**
-     * 0010 Add the Memento classification
+     * 0010 Add the EmbeddedProcess and TransientEmbeddedProcess entities
      */
     private void update0215MoreProcessTypes()
     {
@@ -1014,10 +1014,10 @@ public class OpenMetadataTypesArchive2_6
         final String superTypeName   = "Referenceable";
 
         EntityDef entityDef = archiveHelper.getDefaultEntityDef(guid,
-                                                 name,
-                                                 this.archiveBuilder.getEntityDef(superTypeName),
-                                                 description,
-                                                 descriptionGUID);
+                                                                name,
+                                                                this.archiveBuilder.getEntityDef(superTypeName),
+                                                                description,
+                                                                descriptionGUID);
 
         /*
          * Build the attributes

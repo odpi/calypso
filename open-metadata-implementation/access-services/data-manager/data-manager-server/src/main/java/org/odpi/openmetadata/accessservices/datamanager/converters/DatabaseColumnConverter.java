@@ -3,22 +3,20 @@
 package org.odpi.openmetadata.accessservices.datamanager.converters;
 
 import org.odpi.openmetadata.accessservices.datamanager.metadataelements.DatabaseColumnElement;
-import org.odpi.openmetadata.accessservices.datamanager.metadataelements.DatabaseColumnTypeElement;
-import org.odpi.openmetadata.accessservices.datamanager.properties.DatabaseColumnProperties;
-import org.odpi.openmetadata.accessservices.datamanager.properties.SchemaTypeProperties;
-import org.odpi.openmetadata.commonservices.generichandlers.OpenMetadataAPIMapper;
+import org.odpi.openmetadata.accessservices.datamanager.metadataelements.SchemaTypeElement;
+import org.odpi.openmetadata.accessservices.datamanager.properties.*;
 import org.odpi.openmetadata.frameworks.connectors.ffdc.PropertyServerException;
 import org.odpi.openmetadata.repositoryservices.connectors.stores.metadatacollectionstore.properties.instances.EntityDetail;
-import org.odpi.openmetadata.repositoryservices.connectors.stores.metadatacollectionstore.properties.instances.InstanceProperties;
 import org.odpi.openmetadata.repositoryservices.connectors.stores.metadatacollectionstore.properties.instances.Relationship;
 import org.odpi.openmetadata.repositoryservices.connectors.stores.metadatacollectionstore.properties.typedefs.TypeDefCategory;
 import org.odpi.openmetadata.repositoryservices.connectors.stores.metadatacollectionstore.repositoryconnector.OMRSRepositoryHelper;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
- * TabularColumnConverter transfers the relevant properties from an Open Metadata Repository Services (OMRS)
- * EntityDetail object into a DatabaseColumn bean.
+ * DatabaseColumnConverter transfers the relevant properties from an Open Metadata Repository Services (OMRS)
+ * EntityDetail object into a DatabaseColumnElement bean.
  */
 public class DatabaseColumnConverter<B> extends DataManagerOMASConverter<B>
 {
@@ -66,60 +64,44 @@ public class DatabaseColumnConverter<B> extends DataManagerOMASConverter<B>
             B returnBean = beanClass.newInstance();
             if (returnBean instanceof DatabaseColumnElement)
             {
-                DatabaseColumnElement bean                         = (DatabaseColumnElement) returnBean;
-                DatabaseColumnProperties  databaseColumnProperties = new DatabaseColumnProperties();
+                DatabaseColumnElement bean           = (DatabaseColumnElement) returnBean;
+                DatabaseColumnProperties  properties = new DatabaseColumnProperties();
 
                 if (schemaAttributeEntity != null)
                 {
-                    /*
-                     * Check that the entity is of the correct type.
-                     */
                     bean.setElementHeader(this.getMetadataElementHeader(beanClass, schemaAttributeEntity, methodName));
+                    super.setUpSchemaAttribute(schemaAttributeEntity, null, properties);
 
-                    /*
-                     * The initial set of values come from the entity.
-                     */
-                    InstanceProperties instanceProperties = new InstanceProperties(schemaAttributeEntity.getProperties());
+                    properties.setTypeName(bean.getElementHeader().getType().getTypeName());
 
-                    databaseColumnProperties.setQualifiedName(this.removeQualifiedName(instanceProperties));
-                    databaseColumnProperties.setAdditionalProperties(this.removeAdditionalProperties(instanceProperties));
-                    databaseColumnProperties.setDisplayName(this.removeDisplayName(instanceProperties));
-                    databaseColumnProperties.setDescription(this.removeDescription(instanceProperties));
-
-                    databaseColumnProperties.setElementPosition(this.removePosition(instanceProperties));
-                    databaseColumnProperties.setMinCardinality(this.removeMinCardinality(instanceProperties));
-                    databaseColumnProperties.setMaxCardinality(this.removeMaxCardinality(instanceProperties));
-                    databaseColumnProperties.setAllowsDuplicateValues(this.removeAllowsDuplicateValues(instanceProperties));
-                    databaseColumnProperties.setOrderedValues(this.removeOrderedValues(instanceProperties));
-                    databaseColumnProperties.setDefaultValueOverride(this.removeDefaultValueOverride(instanceProperties));
-                    databaseColumnProperties.setSortOrder(this.removeSortOrder(instanceProperties));
-                    databaseColumnProperties.setMinimumLength(this.removeMinimumLength(instanceProperties));
-                    databaseColumnProperties.setLength(this.removeLength(instanceProperties));
-                    databaseColumnProperties.setPrecision(this.removePrecision(instanceProperties));
-                    databaseColumnProperties.setIsNullable(this.removeIsNullable(instanceProperties));
-                    databaseColumnProperties.setNativeJavaClass(this.removeNativeClass(instanceProperties));
-                    databaseColumnProperties.setAliases(this.removeAliases(instanceProperties));
-
-                    /*
-                     * Any remaining properties are returned in the extended properties.  They are
-                     * assumed to be defined in a subtype.
-                     */
-                    databaseColumnProperties.setTypeName(bean.getElementHeader().getType().getTypeName());
-                    databaseColumnProperties.setExtendedProperties(this.getRemainingExtendedProperties(instanceProperties));
-
-                    instanceProperties = new InstanceProperties(super.getClassificationProperties(OpenMetadataAPIMapper.TYPE_EMBEDDED_ATTRIBUTE_CLASSIFICATION_TYPE_NAME,
-                                                                                                  schemaAttributeEntity));
-
-                    databaseColumnProperties.setDataType(this.removeDataType(instanceProperties));
-                    databaseColumnProperties.setDefaultValue(this.removeDefaultValue(instanceProperties));
-                    databaseColumnProperties.setFixedValue(this.removeFixedValue(instanceProperties));
-
-                    if (schemaType instanceof DatabaseColumnTypeElement)
+                    if (schemaType instanceof SchemaTypeElement)
                     {
-                        databaseColumnProperties.setSchemaType((SchemaTypeProperties) schemaType);
+                        SchemaTypeElement schemaTypeElement = (SchemaTypeElement)schemaType;
+
+                        super.addSchemaTypeToAttribute(schemaTypeElement, properties);
+
+                        properties.setFormula(schemaTypeElement.getFormula());
+                        if ((schemaTypeElement.getQueries() != null) && (! schemaTypeElement.getQueries().isEmpty()))
+                        {
+                            List<DatabaseQueryProperties> databaseQueryPropertiesList = new ArrayList<>();
+
+                            for (DerivedSchemaTypeQueryTargetProperties derivedSchemaTypeQueryTargetProperties : schemaTypeElement.getQueries())
+                            {
+                                if (derivedSchemaTypeQueryTargetProperties != null)
+                                {
+                                    DatabaseQueryProperties databaseQueryProperties = new DatabaseQueryProperties();
+
+                                    databaseQueryProperties.setQuery(derivedSchemaTypeQueryTargetProperties.getQuery());
+                                    databaseQueryProperties.setQueryId(derivedSchemaTypeQueryTargetProperties.getQueryId());
+                                    databaseQueryProperties.setQueryTargetGUID(derivedSchemaTypeQueryTargetProperties.getQueryTargetGUID());
+                                }
+                            }
+
+                            properties.setQueries(databaseQueryPropertiesList);
+                        }
                     }
 
-                    bean.setDatabaseColumnProperties(databaseColumnProperties);
+                    bean.setDatabaseColumnProperties(properties);
                 }
                 else
                 {

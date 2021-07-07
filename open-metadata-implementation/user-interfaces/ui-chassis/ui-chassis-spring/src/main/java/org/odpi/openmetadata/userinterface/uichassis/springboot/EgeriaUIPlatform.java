@@ -8,7 +8,7 @@ import org.odpi.openmetadata.governanceservers.openlineage.client.OpenLineageCli
 import org.odpi.openmetadata.http.HttpHelper;
 import org.odpi.openmetadata.userinterface.uichassis.springboot.auth.*;
 import org.odpi.openmetadata.userinterface.uichassis.springboot.service.ComponentService;
-import org.odpi.openmetadata.userinterface.uichassis.springboot.service.LineageGraphDisplayRulesService;
+import org.odpi.openmetadata.userinterface.uichassis.springboot.service.LineageGraphDisplayService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
@@ -18,21 +18,17 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.cloud.netflix.zuul.EnableZuulProxy;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
-import org.springframework.web.servlet.config.annotation.CorsRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import javax.annotation.PostConstruct;
 
-@EnableZuulProxy
 @SpringBootApplication
 @ComponentScan(basePackages = {"${scan.packages}"})
 @Configuration
-@EnableConfigurationProperties({ComponentService.class, LineageGraphDisplayRulesService.class})
+@EnableConfigurationProperties({ComponentService.class, LineageGraphDisplayService.class})
 public class EgeriaUIPlatform {
 
     private static final Logger LOG = LoggerFactory.getLogger(EgeriaUIPlatform.class);
@@ -59,23 +55,6 @@ public class EgeriaUIPlatform {
             }
         };
     }
-
-
-    @Bean
-    @ConditionalOnProperty(value = "cors.allowed-origins")
-    public WebMvcConfigurer corsConfigurer() {
-        return new WebMvcConfigurer() {
-            @Override
-            public void addCorsMappings(CorsRegistry registry) {
-                if(allowedOrigins.length>0) {
-                    registry.addMapping("/**")
-                            .allowedOrigins(allowedOrigins);
-                }
-            }
-        };
-    }
-
-
 
     @Bean
     public AssetCatalog getAssetCatalog(@Value("${omas.server.url}") String serverUrl,

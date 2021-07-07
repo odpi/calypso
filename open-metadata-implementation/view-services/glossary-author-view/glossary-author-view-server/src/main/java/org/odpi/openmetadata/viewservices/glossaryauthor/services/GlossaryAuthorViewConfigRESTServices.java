@@ -7,7 +7,7 @@ import org.odpi.openmetadata.accessservices.subjectarea.client.nodes.categories.
 import org.odpi.openmetadata.accessservices.subjectarea.properties.objects.category.Category;
 import org.odpi.openmetadata.accessservices.subjectarea.properties.objects.common.Config;
 import org.odpi.openmetadata.accessservices.subjectarea.properties.objects.common.FindRequest;
-import org.odpi.openmetadata.accessservices.subjectarea.properties.objects.graph.Line;
+import org.odpi.openmetadata.accessservices.subjectarea.properties.objects.graph.Relationship;
 import org.odpi.openmetadata.accessservices.subjectarea.properties.objects.term.Term;
 import org.odpi.openmetadata.accessservices.subjectarea.responses.SubjectAreaOMASAPIResponse;
 import org.odpi.openmetadata.commonservices.ffdc.RESTCallToken;
@@ -73,6 +73,8 @@ public class GlossaryAuthorViewConfigRESTServices extends BaseGlossaryAuthorView
      * @param serverName         name of the local view server.
      * @param userId             user identifier
      * @param searchCriteria     String expression matching Category property values .
+     * @param exactValue a boolean, which when set means that only exact matches will be returned, otherwise matches that start with the search criteria will be returned.
+     * @param ignoreCase a boolean, which when set means that case will be ignored, if not set that case will be respected
      * @param asOfTime           the glossaries returned as they were at this time. null indicates at the current time.
      * @param startingFrom             the starting element number for this set of results.  This is used when retrieving elements
      *                           beyond the first page of results. Zero means the results start from the first element.
@@ -92,6 +94,8 @@ public class GlossaryAuthorViewConfigRESTServices extends BaseGlossaryAuthorView
             String userId,
             Date asOfTime,
             String searchCriteria,
+            boolean exactValue,
+            boolean ignoreCase,
             Integer startingFrom,
             Integer pageSize,
             SequencingOrder sequencingOrder,
@@ -121,7 +125,7 @@ public class GlossaryAuthorViewConfigRESTServices extends BaseGlossaryAuthorView
             findRequest.setSequencingOrder(sequencingOrder);
             findRequest.setSequencingProperty(sequencingProperty);
 
-            List<Category> categories = clients.categories().find(userId, findRequest);
+            List<Category> categories = clients.categories().find(userId, findRequest, exactValue, ignoreCase);
             response.addAllResults(categories);
         }  catch (Exception exception) {
             response =  getResponseForException(exception, auditLog, className, methodName);
@@ -150,7 +154,7 @@ public class GlossaryAuthorViewConfigRESTServices extends BaseGlossaryAuthorView
      * <li> PropertyServerException              Property server exception. </li>
      * </ul>
      */
-    public SubjectAreaOMASAPIResponse<Line> getCategoryRelationships(
+    public SubjectAreaOMASAPIResponse<Relationship> getCategoryRelationships(
             String serverName,
             String userId,
             String guid,
@@ -161,11 +165,11 @@ public class GlossaryAuthorViewConfigRESTServices extends BaseGlossaryAuthorView
             String sequencingProperty
 
 
-    ) {
+                                                                            ) {
         final String methodName = "getCategoryRelationships";
 
         RESTCallToken token = restCallLogger.logRESTCall(serverName, userId, methodName);
-        SubjectAreaOMASAPIResponse<Line> response = new SubjectAreaOMASAPIResponse<>();
+        SubjectAreaOMASAPIResponse<Relationship> response = new SubjectAreaOMASAPIResponse<>();
         AuditLog auditLog = null;
         try {
             if (pageSize == null) {
@@ -184,8 +188,8 @@ public class GlossaryAuthorViewConfigRESTServices extends BaseGlossaryAuthorView
             findRequest.setSequencingOrder(sequencingOrder);
             findRequest.setSequencingProperty(sequencingProperty);
 
-            List<Line> lines =  clients.categories().getRelationships(userId, guid, findRequest);
-            response.addAllResults(lines);
+            List<Relationship> relationships =  clients.categories().getRelationships(userId, guid, findRequest);
+            response.addAllResults(relationships);
         }  catch (Exception exception) {
             response =  getResponseForException(exception, auditLog, className, methodName);
         }
@@ -356,7 +360,7 @@ public class GlossaryAuthorViewConfigRESTServices extends BaseGlossaryAuthorView
             findRequest.setStartingFrom(startingFrom);
             auditLog = instanceHandler.getAuditLog(userId, serverName, methodName);
             SubjectAreaNodeClients clients = instanceHandler.getSubjectAreaNodeClients(serverName, userId, methodName);
-            List<Category> categories = ((SubjectAreaCategoryClient) clients.categories()).getCategoryChildren(userId, guid, findRequest);
+            List<Category> categories = ((SubjectAreaCategoryClient) clients.categories()).getCategoryChildren(userId, guid, findRequest, false, true);
             response.addAllResults(categories);
         } catch (Exception exception) {
             response = getResponseForException(exception, auditLog, className, methodName);
@@ -384,7 +388,7 @@ public class GlossaryAuthorViewConfigRESTServices extends BaseGlossaryAuthorView
                 findRequest.setStartingFrom(startingFrom);
                 auditLog = instanceHandler.getAuditLog(userId, serverName, methodName);
                 SubjectAreaNodeClients clients = instanceHandler.getSubjectAreaNodeClients(serverName, userId, methodName);
-                List<Term> terms = ((SubjectAreaCategoryClient)clients.categories()).getTerms(userId, guid, findRequest);
+                List<Term> terms = ((SubjectAreaCategoryClient)clients.categories()).getTerms(userId, guid, findRequest, true, false);
                 response.addAllResults(terms);
             } catch (Exception exception) {
                 response = getResponseForException(exception, auditLog, className, methodName);

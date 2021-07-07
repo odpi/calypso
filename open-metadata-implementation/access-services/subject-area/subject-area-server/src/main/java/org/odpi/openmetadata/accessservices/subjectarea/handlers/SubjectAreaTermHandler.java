@@ -7,9 +7,9 @@ import org.odpi.openmetadata.accessservices.subjectarea.ffdc.SubjectAreaErrorCod
 import org.odpi.openmetadata.accessservices.subjectarea.ffdc.exceptions.SubjectAreaCheckedException;
 import org.odpi.openmetadata.accessservices.subjectarea.properties.objects.category.Category;
 import org.odpi.openmetadata.accessservices.subjectarea.properties.objects.common.FindRequest;
-import org.odpi.openmetadata.accessservices.subjectarea.properties.objects.common.GovernanceActions;
-import org.odpi.openmetadata.accessservices.subjectarea.properties.objects.graph.Line;
-import org.odpi.openmetadata.accessservices.subjectarea.properties.objects.graph.LineType;
+import org.odpi.openmetadata.accessservices.subjectarea.properties.objects.common.GovernanceClassifications;
+import org.odpi.openmetadata.accessservices.subjectarea.properties.objects.graph.Relationship;
+import org.odpi.openmetadata.accessservices.subjectarea.properties.objects.graph.RelationshipType;
 import org.odpi.openmetadata.accessservices.subjectarea.properties.objects.graph.NodeType;
 import org.odpi.openmetadata.accessservices.subjectarea.properties.objects.nodesummary.CategorySummary;
 import org.odpi.openmetadata.accessservices.subjectarea.properties.objects.nodesummary.GlossarySummary;
@@ -29,7 +29,7 @@ import org.odpi.openmetadata.frameworks.connectors.ffdc.PropertyServerException;
 import org.odpi.openmetadata.frameworks.connectors.ffdc.UserNotAuthorizedException;
 import org.odpi.openmetadata.repositoryservices.connectors.stores.metadatacollectionstore.properties.instances.Classification;
 import org.odpi.openmetadata.repositoryservices.connectors.stores.metadatacollectionstore.properties.instances.EntityDetail;
-import org.odpi.openmetadata.repositoryservices.connectors.stores.metadatacollectionstore.properties.instances.Relationship;
+import org.odpi.openmetadata.repositoryservices.connectors.stores.metadatacollectionstore.properties.instances.InstanceProperties;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -76,7 +76,7 @@ public class SubjectAreaTermHandler extends SubjectAreaHandler {
      * </ul>
      *
      * @param userId           unique identifier for requesting user, under which the request is performed
-     * @param suppliedTerm Term to create
+     * @param suppliedTerm     Term to create
      * @return response, when successful contains the created term.
      * when not successful the following Exception responses can occur
      * <ul>
@@ -109,13 +109,28 @@ public class SubjectAreaTermHandler extends SubjectAreaHandler {
 
                 String glossaryGuid = validateGlossarySummaryDuringCreation(userId, methodName, suppliedGlossary);
                 validateCategoriesDuringCreation(userId,methodName,suppliedCategorysummaries);
+                InstanceProperties instanceProperties = termEntityDetail.getProperties();
+                if (instanceProperties == null ) {
+                    instanceProperties = new InstanceProperties();
+                }
+                if (instanceProperties.getEffectiveFromTime() == null) {
+                    instanceProperties.setEffectiveFromTime(new Date());
+                    termEntityDetail.setProperties(instanceProperties);
+                }
                 createdTermGuid = oMRSAPIHelper.callOMRSAddEntity(methodName, userId, termEntityDetail);
                 if (createdTermGuid != null) {
                     TermAnchor termAnchor = new TermAnchor();
+                    // we expect that the created term has a from time of now or the supplied value.
+                    // set the relationship from value to the same
+                    termAnchor.setEffectiveFromTime(instanceProperties.getEffectiveFromTime().getTime());
+                    if (instanceProperties.getEffectiveToTime() != null) {
+                        termAnchor.setEffectiveToTime(instanceProperties.getEffectiveToTime().getTime());
+                    }
+
                     termAnchor.getEnd1().setNodeGuid(glossaryGuid);
                     termAnchor.getEnd2().setNodeGuid(createdTermGuid);
 
-                    Relationship relationship = termAnchorMapper.map(termAnchor);
+                    org.odpi.openmetadata.repositoryservices.connectors.stores.metadatacollectionstore.properties.instances.Relationship relationship = termAnchorMapper.map(termAnchor);
                     oMRSAPIHelper.callOMRSAddRelationship(methodName, userId, relationship);
                     response = getTermByGuid(userId, createdTermGuid);
                     if (response.getRelatedHTTPCode() == 200) {
@@ -124,6 +139,12 @@ public class SubjectAreaTermHandler extends SubjectAreaHandler {
                                 Categorization categorization = new Categorization();
                                 categorization.getEnd1().setNodeGuid(categorySummary.getGuid());
                                 categorization.getEnd2().setNodeGuid(createdTermGuid);
+                                // we expect that the created term has a from time of now or the supplied value.
+                                // set the relationship from value to the same
+                                categorization.setEffectiveFromTime(instanceProperties.getEffectiveFromTime().getTime());
+                                if (instanceProperties.getEffectiveToTime() != null) {
+                                    categorization.setEffectiveToTime(instanceProperties.getEffectiveToTime().getTime());
+                                }
                                 relationship = termCategorizationMapper.map(categorization);
                                 oMRSAPIHelper.callOMRSAddRelationship(methodName, userId, relationship);
                                 response = getTermByGuid(userId, createdTermGuid);
@@ -225,6 +246,8 @@ public class SubjectAreaTermHandler extends SubjectAreaHandler {
      *
      * @param userId             unique identifier for requesting user, under which the request is performed
      * @param findRequest        {@link FindRequest}
+     * @param exactValue a boolean, which when set means that only exact matches will be returned, otherwise matches that start with the search criteria will be returned.
+     * @param ignoreCase a boolean, which when set means that case will be ignored, if not set that case will be respected
      * @return A list of Terms meeting the search Criteria
      *
      * <ul>
@@ -234,14 +257,14 @@ public class SubjectAreaTermHandler extends SubjectAreaHandler {
      * <li> FunctionNotSupportedException        Function not supported this indicates that a find was issued but the repository does not implement find functionality in some way.</li>
      * </ul>
      */
-    public SubjectAreaOMASAPIResponse<Term> findTerm(String userId, FindRequest findRequest) {
+    public SubjectAreaOMASAPIResponse<Term> findTerm(String userId, FindRequest findRequest, boolean exactValue, boolean ignoreCase) {
 
         final String methodName = "findTerm";
         SubjectAreaOMASAPIResponse<Term> response = new SubjectAreaOMASAPIResponse<>();
 
         // If no search criteria is supplied then we return all terms, this should not be too many
         try {
-            List<Term> foundTerms = findEntities(userId, TERM_TYPE_NAME, findRequest, TermMapper.class, methodName);
+            List<Term> foundTerms = findNodes(userId, TERM_TYPE_NAME, findRequest, exactValue, ignoreCase, TermMapper.class, methodName);
             if (foundTerms != null) {
                 for (Term term : foundTerms) {
                     setSummaryObjects(userId, term, methodName);
@@ -274,9 +297,9 @@ public class SubjectAreaTermHandler extends SubjectAreaHandler {
                                                                                        InvalidParameterException
     {
         final String guid = term.getSystemAttributes().getGUID();
-        List<Relationship> termAnchorRelationships = oMRSAPIHelper.getRelationshipsByType(userId, guid, TERM_TYPE_NAME, TERM_ANCHOR_RELATIONSHIP_NAME, methodName);
+        List<org.odpi.openmetadata.repositoryservices.connectors.stores.metadatacollectionstore.properties.instances.Relationship> termAnchorRelationships = oMRSAPIHelper.getRelationshipsByType(userId, guid, TERM_TYPE_NAME, TERM_ANCHOR_RELATIONSHIP_NAME, methodName);
         if (CollectionUtils.isNotEmpty(termAnchorRelationships)) {
-            for (Relationship relationship : termAnchorRelationships) {
+            for (org.odpi.openmetadata.repositoryservices.connectors.stores.metadatacollectionstore.properties.instances.Relationship relationship : termAnchorRelationships) {
                 TermAnchor termAnchor = termAnchorMapper.map(relationship);
                 GlossarySummary glossarySummary = getGlossarySummary(methodName, userId, termAnchor);
                 if (glossarySummary != null) {
@@ -284,10 +307,10 @@ public class SubjectAreaTermHandler extends SubjectAreaHandler {
                 }
             }
         }
-        List<Relationship> termCategorizationRelationships = oMRSAPIHelper.getRelationshipsByType(userId, guid, TERM_TYPE_NAME, TERM_CATEGORIZATION_RELATIONSHIP_NAME, methodName);
+        List<org.odpi.openmetadata.repositoryservices.connectors.stores.metadatacollectionstore.properties.instances.Relationship> termCategorizationRelationships = oMRSAPIHelper.getRelationshipsByType(userId, guid, TERM_TYPE_NAME, TERM_CATEGORIZATION_RELATIONSHIP_NAME, methodName);
         if (CollectionUtils.isNotEmpty(termCategorizationRelationships)) {
             List<CategorySummary> categorySummaryList = new ArrayList<>();
-            for (Relationship relationship : termCategorizationRelationships) {
+            for (org.odpi.openmetadata.repositoryservices.connectors.stores.metadatacollectionstore.properties.instances.Relationship relationship : termCategorizationRelationships) {
                 Categorization categorization = termCategorizationMapper.map(relationship);
                 if (categorization !=null) {
                     CategorySummary categorySummary = getCategorySummary(methodName, userId, categorization);
@@ -318,7 +341,7 @@ public class SubjectAreaTermHandler extends SubjectAreaHandler {
      * </ul>
      */
 
-    public SubjectAreaOMASAPIResponse<Line> getTermRelationships(String userId, String guid, FindRequest findRequest) {
+    public SubjectAreaOMASAPIResponse<Relationship> getTermRelationships(String userId, String guid, FindRequest findRequest) {
         String methodName = "getTermRelationships";
         return getAllRelationshipsForEntity(methodName, userId, guid, findRequest);
     }
@@ -359,7 +382,7 @@ public class SubjectAreaTermHandler extends SubjectAreaHandler {
             response = getTermByGuid(userId, guid);
             if (response.head().isPresent()) {
                 Term currentTerm = response.head().get();
-
+                checkReadOnly(methodName, currentTerm, "update");
                 Set<String> currentClassificationNames = getCurrentClassificationNames(currentTerm);
 
                 if (isReplace)
@@ -367,13 +390,15 @@ public class SubjectAreaTermHandler extends SubjectAreaHandler {
                 else
                     updateAttributes(currentTerm, suppliedTerm);
 
-                Date termFromTime = suppliedTerm.getEffectiveFromTime();
-                Date termToTime = suppliedTerm.getEffectiveToTime();
+                Long termFromTime = suppliedTerm.getEffectiveFromTime();
+                Long termToTime = suppliedTerm.getEffectiveToTime();
                 currentTerm.setEffectiveFromTime(termFromTime);
                 currentTerm.setEffectiveToTime(termToTime);
                 // always update the governance actions for a replace or an update
-                currentTerm.setGovernanceActions(suppliedTerm.getGovernanceActions());
-
+                currentTerm.setGovernanceClassifications(suppliedTerm.getGovernanceClassifications());
+                currentTerm.setSpineObject(suppliedTerm.isSpineObject());
+                currentTerm.setSpineAttribute(suppliedTerm.isSpineAttribute());
+                currentTerm.setObjectIdentifier(suppliedTerm.isObjectIdentifier());
                 TermMapper termMapper = mappersFactory.get(TermMapper.class);
                 EntityDetail forUpdate = termMapper.map(currentTerm);
                 Optional<EntityDetail> updatedEntity = oMRSAPIHelper.callOMRSUpdateEntity(methodName, userId, forUpdate);
@@ -439,15 +464,15 @@ public class SubjectAreaTermHandler extends SubjectAreaHandler {
      */
     private void replaceCategories(String userId, String guid, Term suppliedTerm, String methodName) throws UserNotAuthorizedException, PropertyServerException, SubjectAreaCheckedException, InvalidParameterException {
         Set<String> deleteCategorizationGuidSet = new HashSet<>();
-        SubjectAreaOMASAPIResponse<Line> lineResponse = getTermRelationships(userId, guid, new FindRequest());
-        List<Line> lines= lineResponse.results();
+        SubjectAreaOMASAPIResponse<Relationship> relationshipResponse = getTermRelationships(userId, guid, new FindRequest());
+        List<Relationship> relationships= relationshipResponse.results();
         /*
          * The supplied categories may not be completely filled out.
          * we will accept a guid (i.e. that of the category) and ignore the rest.
          */
-        for (Line line : lines) {
-            if (line.getLineType().equals(LineType.TermCategorization)) {
-                deleteCategorizationGuidSet.add(line.getGuid());
+        for (Relationship relationship : relationships) {
+            if (relationship.getRelationshipType().equals(RelationshipType.TermCategorization)) {
+                deleteCategorizationGuidSet.add(relationship.getGuid());
             }
         }
 
@@ -484,7 +509,7 @@ public class SubjectAreaTermHandler extends SubjectAreaHandler {
                 .map(x -> x.getClassificationName())
                 .collect(Collectors.toSet());
 
-        GovernanceActions currentActions = currentTerm.getGovernanceActions();
+        GovernanceClassifications currentActions = currentTerm.getGovernanceClassifications();
         if (currentActions != null) {
             if (currentActions.getConfidence()!=null)
                 currentClassificationNames.add(currentActions.getConfidence().getClassificationName());
@@ -579,6 +604,11 @@ public class SubjectAreaTermHandler extends SubjectAreaHandler {
             if (isPurge) {
                 oMRSAPIHelper.callOMRSPurgeEntity(methodName, userId, TERM_TYPE_NAME, guid);
             } else {
+                response = getTermByGuid(userId, guid);
+                if (response.head().isPresent()) {
+                    Term currentTerm = response.head().get();
+                    checkReadOnly(methodName, currentTerm, "delete");
+                }
                 oMRSAPIHelper.callOMRSDeleteEntity(methodName, userId, TERM_TYPE_NAME, guid);
             }
         } catch (SubjectAreaCheckedException | PropertyServerException | UserNotAuthorizedException e) {

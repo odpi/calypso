@@ -8,7 +8,7 @@ import org.odpi.openmetadata.accessservices.subjectarea.client.nodes.terms.Subje
 import org.odpi.openmetadata.accessservices.subjectarea.properties.objects.category.Category;
 import org.odpi.openmetadata.accessservices.subjectarea.properties.objects.common.Config;
 import org.odpi.openmetadata.accessservices.subjectarea.properties.objects.common.FindRequest;
-import org.odpi.openmetadata.accessservices.subjectarea.properties.objects.graph.Line;
+import org.odpi.openmetadata.accessservices.subjectarea.properties.objects.graph.Relationship;
 import org.odpi.openmetadata.accessservices.subjectarea.properties.objects.term.Term;
 import org.odpi.openmetadata.accessservices.subjectarea.responses.SubjectAreaOMASAPIResponse;
 import org.odpi.openmetadata.commonservices.ffdc.RESTCallToken;
@@ -109,6 +109,8 @@ public class GlossaryAuthorViewTermRESTServices extends BaseGlossaryAuthorView {
      * @param serverName         name of the local view server.
      * @param userId             user identifier
      * @param searchCriteria     String expression matching Term property values .
+     * @param exactValue a boolean, which when set means that only exact matches will be returned, otherwise matches that start with the search criteria will be returned.
+     * @param ignoreCase a boolean, which when set means that case will be ignored, if not set that case will be respected
      * @param asOfTime           the glossaries returned as they were at this time. null indicates at the current time.
      * @param startingFrom             the starting element number for this set of results.  This is used when retrieving elements
      *                           beyond the first page of results. Zero means the results start from the first element.
@@ -128,6 +130,8 @@ public class GlossaryAuthorViewTermRESTServices extends BaseGlossaryAuthorView {
             String userId,
             Date asOfTime,
             String searchCriteria,
+            boolean exactValue,
+            boolean ignoreCase,
             Integer startingFrom,
             Integer pageSize,
             SequencingOrder sequencingOrder,
@@ -157,7 +161,7 @@ public class GlossaryAuthorViewTermRESTServices extends BaseGlossaryAuthorView {
             findRequest.setSequencingProperty(sequencingProperty);
             SubjectAreaConfigClient client = instanceHandler.getSubjectAreaConfigClient(serverName, userId, methodName);
             Config subjectAreaConfig = client.getConfig(userId);
-            List<Term> terms = clients.terms().find(userId, findRequest, subjectAreaConfig.getMaxPageSize());
+            List<Term> terms = clients.terms().find(userId, findRequest, exactValue, ignoreCase, subjectAreaConfig.getMaxPageSize());
             response.addAllResults(terms);
         }  catch (Exception exception) {
             response = getResponseForException(exception, auditLog, className, methodName);
@@ -186,7 +190,7 @@ public class GlossaryAuthorViewTermRESTServices extends BaseGlossaryAuthorView {
      * <li> PropertyServerException              Property server exception. </li>
      * </ul>
      */
-    public SubjectAreaOMASAPIResponse<Line> getTermRelationships(
+    public SubjectAreaOMASAPIResponse<Relationship> getTermRelationships(
             String serverName,
             String userId,
             String guid,
@@ -197,11 +201,11 @@ public class GlossaryAuthorViewTermRESTServices extends BaseGlossaryAuthorView {
             String sequencingProperty
 
 
-    ) {
+                                                                        ) {
         final String methodName = "getTermRelationships";
 
         RESTCallToken token = restCallLogger.logRESTCall(serverName, userId, methodName);
-        SubjectAreaOMASAPIResponse<Line> response = new SubjectAreaOMASAPIResponse<>();
+        SubjectAreaOMASAPIResponse<Relationship> response = new SubjectAreaOMASAPIResponse<>();
         AuditLog auditLog = null;
         try {
             if (pageSize == null) {
@@ -220,8 +224,8 @@ public class GlossaryAuthorViewTermRESTServices extends BaseGlossaryAuthorView {
             findRequest.setSequencingOrder(sequencingOrder);
             findRequest.setSequencingProperty(sequencingProperty);
 
-            List<Line> lines =  clients.terms().getRelationships(userId, guid, findRequest);
-            response.addAllResults(lines);
+            List<Relationship> relationships =  clients.terms().getRelationships(userId, guid, findRequest);
+            response.addAllResults(relationships);
         }  catch (Exception exception) {
             response = getResponseForException(exception, auditLog, className, methodName);
         }

@@ -41,13 +41,12 @@ public class PlatformConnectionProvider {
 
     protected static Stream<Arguments> getConnectionDetails() throws IOException, InvalidParameterException,
             org.odpi.openmetadata.repositoryservices.ffdc.exception.InvalidParameterException {
-        String rootPath = Objects.requireNonNull(Thread.currentThread().getContextClassLoader().getResource("")).getPath();
-        String appConfigPath = rootPath + APPLICATION_PROPERTIES;
+        String appConfigPath = Objects.requireNonNull(Thread.currentThread().getContextClassLoader().getResource(APPLICATION_PROPERTIES)).getPath();
 
         Properties properties = new Properties();
         properties.load(new FileInputStream(appConfigPath));
         String userId = properties.getProperty(USER);
-        String serverPlatformRootURL = properties.getProperty(BASE_URL) + properties.getProperty(PORT);
+        String serverPlatformRootURL = properties.getProperty(BASE_URL) + ":" + properties.getProperty(PORT);
 
         List<Arguments> servers = new ArrayList<>();
         if (Boolean.parseBoolean(properties.getProperty(SERVER_IN_MEMORY_ENABLED))) {

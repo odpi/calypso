@@ -4,7 +4,7 @@ package org.odpi.openmetadata.accessservices.subjectarea.server.services;
 
 import org.odpi.openmetadata.accessservices.subjectarea.handlers.SubjectAreaProjectHandler;
 import org.odpi.openmetadata.accessservices.subjectarea.properties.objects.common.FindRequest;
-import org.odpi.openmetadata.accessservices.subjectarea.properties.objects.graph.Line;
+import org.odpi.openmetadata.accessservices.subjectarea.properties.objects.graph.Relationship;
 import org.odpi.openmetadata.accessservices.subjectarea.properties.objects.project.Project;
 import org.odpi.openmetadata.accessservices.subjectarea.properties.objects.term.Term;
 import org.odpi.openmetadata.accessservices.subjectarea.responses.SubjectAreaOMASAPIResponse;
@@ -120,6 +120,8 @@ public class SubjectAreaProjectRESTServices extends SubjectAreaRESTServicesInsta
      * @param serverName serverName under which this request is performed, this is used in multi tenanting to identify the tenant
      * @param userId unique identifier for requesting user, under which the request is performed
      * @param searchCriteria String expression matching Project property values. If not specified then all projects are returned.
+     * @param exactValue a boolean, which when set means that only exact matches will be returned, otherwise matches that start with the search criteria will be returned.
+     * @param ignoreCase a boolean, which when set means that case will be ignored, if not set that case will be respected
      * @param asOfTime the projects returned as they were at this time. null indicates at the current time.
      * @param startingFrom  the starting element number for this set of results.  This is used when retrieving elements
      *                 beyond the first page of results. Zero means the results start from the first element.
@@ -138,6 +140,8 @@ public class SubjectAreaProjectRESTServices extends SubjectAreaRESTServicesInsta
     public SubjectAreaOMASAPIResponse<Project> findProject(String serverName,
                                                            String userId,
                                                            String searchCriteria,
+                                                           boolean exactValue,
+                                                           boolean ignoreCase,
                                                            Date asOfTime,
                                                            Integer startingFrom,
                                                            Integer pageSize,
@@ -160,7 +164,7 @@ public class SubjectAreaProjectRESTServices extends SubjectAreaRESTServicesInsta
             findRequest.setPageSize(pageSize);
             findRequest.setSequencingOrder(sequencingOrder);
             findRequest.setSequencingProperty(sequencingProperty);
-            response = handler.findProject(userId,findRequest);
+            response = handler.findProject(userId,findRequest, exactValue,ignoreCase);
         } catch (OCFCheckedExceptionBase e) {
             response.setExceptionInfo(e, className);
         } catch (Exception exception) {
@@ -195,19 +199,19 @@ public class SubjectAreaProjectRESTServices extends SubjectAreaRESTServicesInsta
      * </ul>
      */
 
-    public SubjectAreaOMASAPIResponse<Line> getProjectRelationships(String serverName,
-                                                                    String userId,
-                                                                    String guid,
-                                                                    Date asOfTime,
-                                                                    Integer startingFrom,
-                                                                    Integer pageSize,
-                                                                    SequencingOrder sequencingOrder,
-                                                                    String sequencingProperty) {
+    public SubjectAreaOMASAPIResponse<Relationship> getProjectRelationships(String serverName,
+                                                                            String userId,
+                                                                            String guid,
+                                                                            Date asOfTime,
+                                                                            Integer startingFrom,
+                                                                            Integer pageSize,
+                                                                            SequencingOrder sequencingOrder,
+                                                                            String sequencingProperty) {
         String methodName = "getProjectRelationships";
         if (log.isDebugEnabled()) {
             log.debug("==> Method: " + methodName + ",userId=" + userId + ",guid=" + guid);
         }
-        SubjectAreaOMASAPIResponse<Line> response = new SubjectAreaOMASAPIResponse<>();
+        SubjectAreaOMASAPIResponse<Relationship> response = new SubjectAreaOMASAPIResponse<>();
         AuditLog auditLog = null;
         try {
             auditLog = instanceHandler.getAuditLog(userId, serverName, methodName);

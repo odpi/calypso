@@ -27,6 +27,7 @@ import org.odpi.openmetadata.frameworks.auditlog.messagesets.ExceptionMessageSet
  */
 
 public enum DataEngineErrorCode implements ExceptionMessageSet {
+
     OMRS_NOT_INITIALIZED(404, "OMAS-DATA-ENGINE-404-001 ",
             "The open metadata repository services are not initialized for server {0}",
             "The system is unable to connect to the open metadata property server.",
@@ -44,10 +45,10 @@ public enum DataEngineErrorCode implements ExceptionMessageSet {
             "Exception while processing the data engine event {0}",
             "The system is unable to process the event.",
             "Verify the topic configuration or the event schema."),
-    SCHEMA_ATTRIBUTE_NOT_FOUND(400, "OMAS-DATA-ENGINE-400-005",
-            "SchemaAttribute with qualifiedName {0} was not found",
+    REFERENCEABLE_NOT_FOUND(400, "OMAS-DATA-ENGINE-400-005",
+            "Referenceable with qualifiedName {0} was not found",
             "The system is unable to create a new LineageMapping relation.",
-            "Correct the code in the caller to provide the correct schema attribute qualified name."),
+            "Correct the code in the caller to provide the correct referenceable qualified name."),
     PORT_NOT_FOUND(400, "OMAS-DATA-ENGINE-400-006",
             "Port with qualifiedName {0} was not found",
             "The system is unable to create a new PortDelegation relation.",
@@ -56,23 +57,30 @@ public enum DataEngineErrorCode implements ExceptionMessageSet {
             "Unable to send or receive events for source {0} because the connector to the OMRS Topic failed to initialize",
             "The local server will not connect to the cohort.",
             "The connection to the connector is configured in the server configuration.  " +
-                                 "Review previous error messages to determine the precise error in the " +
-                                 "start up configuration. " +
-                                 "Correct the configuration and reconnect the server to the cohort. "),
+                    "Review previous error messages to determine the precise error in the " +
+                    "start up configuration. " +
+                    "Correct the configuration and reconnect the server to the cohort. "),
     PROCESS_NOT_FOUND(400, "OMAS-DATA-ENGINE-400-008",
             "Process with qualifiedName {0} was not found",
             "The system is unable to create a new ProcessHierarchy relation.",
             "Correct the code in the caller to provide the correct port qualified name."),
+    DATABASE_NOT_FOUND(400, "OMAS-DATA-ENGINE-400-009",
+            "Database with qualifiedName {0} was not found",
+            "The system is unable to create a new table attached to database",
+            "Correct the code in the caller to provide the correct database qualified name."),
     UNABLE_TO_SEND_EVENT(500, "OMAS-DATA-ENGINE-500-001",
             "An unexpected exception occurred when sending an event through connector {0} to the Data Engine OMAS out topic.  The failing " +
                     "event was {1}, the exception was {2} with message {2}",
             "The system has issued a call to an open metadata access service input topic using event message broker",
-            "Look for errors in the remote server's audit log and console to understand and correct the source of the error.");
+            "Look for errors in the remote server's audit log and console to understand and correct the source of the error."),
+    ENTITY_NOT_DELETED(400, "OMAS-DATA-ENGINE-400-010",
+            "Enity with qualifiedName {0} was not deleted",
+            "The system is unable to cdelete the entity with the provided qualifiedName or guid.",
+            "Correct the code in the caller to provide the correct database qualified name.");
 
     private static final long serialVersionUID = 1L;
 
-    private ExceptionMessageDefinition messageDefinition;
-
+    private final ExceptionMessageDefinition messageDefinition;
 
     /**
      * The constructor for DataEngineErrorCode expects to be passed one of the enumeration rows defined in
@@ -101,11 +109,11 @@ public enum DataEngineErrorCode implements ExceptionMessageSet {
         return messageDefinition;
     }
 
-
     /**
      * Retrieve a message definition object for an exception.  This method is used when there are values to be inserted into the message.
      *
      * @param params array of parameters (all strings).  They are inserted into the message according to the numbering in the message text.
+     *
      * @return message definition object.
      */
     public ExceptionMessageDefinition getMessageDefinition(String... params) {

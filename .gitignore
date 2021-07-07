@@ -123,6 +123,8 @@ open-metadata-implementation/user-interfaces/presentation-server/nodejs/yarn.loc
 open-metadata-implementation/user-interfaces/presentation-server/nodejs/node/**
 open-metadata-implementation/user-interfaces/presentation-server/nodejs/.env
 open-metadata-implementation/user-interfaces/presentation-server/node/**
+open-metadata-implementation/user-interfaces/presentation-server/package-lock.json
+
 
 open-metadata-implementation/user-interfaces/presentation-server/cra-client/node_modules
 open-metadata-implementation/user-interfaces/presentation-server/cra-client/.env
@@ -149,12 +151,6 @@ open-metadata-implementation/user-interfaces/ui-chassis/ui-chassis-spring/src/ma
 
 # Ignore private maven repo (jenkins)
 .repository
-
-# Ignore sub-charts
-# when helm pulls in dependencies (dependency.yaml) it keeps the chart locally. We don't want
-# to check these into git as they are not owned by this project and helm will automatically
-# retrieve from the authoritative source
-**/charts/**/charts/**
 
 # exclude temporary lock files
 *.lock

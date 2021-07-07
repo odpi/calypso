@@ -10,7 +10,7 @@
     <parent>
         <artifactId>data-engine</artifactId>
         <groupId>org.odpi.egeria</groupId>
-        <version>2.8-SNAPSHOT</version>
+        <version>3.0-SNAPSHOT</version>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
@@ -47,11 +47,6 @@
         </dependency>
 
         <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-collections4</artifactId>
-        </dependency>
-
-        <dependency>
             <groupId>org.odpi.egeria</groupId>
             <artifactId>audit-log-framework</artifactId>
         </dependency>
@@ -61,5 +56,11 @@
             <artifactId>repository-services-apis</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+        </dependency>
+
     </dependencies>
+
 </project>

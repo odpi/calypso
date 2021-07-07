@@ -66,9 +66,6 @@ public class DataEngineInTopicListener implements OpenMetadataTopicListener {
                         case PORT_IMPLEMENTATION_EVENT:
                             dataEngineEventProcessor.processPortImplementationEvent(dataEngineEvent);
                             break;
-                        case PROCESS_TO_PORT_LIST_EVENT:
-                            dataEngineEventProcessor.processProcessToPortListEvent(dataEngineEvent);
-                            break;
                         case PROCESSES_EVENT:
                             dataEngineEventProcessor.processProcessesEvent(dataEngineEvent);
                             break;
@@ -77,6 +74,48 @@ public class DataEngineInTopicListener implements OpenMetadataTopicListener {
                             break;
                         case PROCESS_HIERARCHY_EVENT:
                             dataEngineEventProcessor.processProcessHierarchyEvent(dataEngineEvent);
+                            break;
+                        case DELETE_PROCESSES_EVENT:
+                            dataEngineEventProcessor.processDeleteProcessesEvent(dataEngineEvent);
+                            break;
+                        case DELETE_PORT_IMPLEMENTATION_EVENT:
+                            dataEngineEventProcessor.processDeletePortImplementationEvent(dataEngineEvent);
+                            break;
+                        case DELETE_PORT_ALIAS_EVENT:
+                            dataEngineEventProcessor.processDeletePortAliasEvent(dataEngineEvent);
+                            break;
+                        case DELETE_SCHEMA_TYPE_EVENT:
+                            dataEngineEventProcessor.processDeleteSchemaTypeEvent(dataEngineEvent);
+                            break;
+                        case DELETE_DATA_ENGINE_EVENT:
+                            dataEngineEventProcessor.processDeleteDataEngineEvent(dataEngineEvent);
+                            break;
+                        case DATABASE_EVENT:
+                            dataEngineEventProcessor.processDatabaseEvent(dataEngineEvent);
+                            break;
+                        case RELATIONAL_TABLE_EVENT:
+                            dataEngineEventProcessor.processRelationalTableEvent(dataEngineEvent);
+                            break;
+                        case DATA_FILE_EVENT:
+                            dataEngineEventProcessor.processDataFileEvent(dataEngineEvent);
+                            break;
+                        case DELETE_DATABASE_EVENT:
+                            dataEngineEventProcessor.processDeleteDatabaseEvent(dataEngineEvent);
+                            break;
+                        case DELETE_RELATIONAL_TABLE_EVENT:
+                            dataEngineEventProcessor.processDeleteRelationalTableEvent(dataEngineEvent);
+                            break;
+                        case DELETE_DATA_FILE_EVENT:
+                            dataEngineEventProcessor.processDeleteDataFileEvent(dataEngineEvent);
+                            break;
+                        case DELETE_FOLDER_EVENT:
+                            dataEngineEventProcessor.processDeleteFolderEvent(dataEngineEvent);
+                            break;
+                        case DELETE_CONNECTION_EVENT:
+                            dataEngineEventProcessor.processDeleteConnectionEvent(dataEngineEvent);
+                            break;
+                        case DELETE_ENDPOINT_EVENT:
+                            dataEngineEventProcessor.processDeleteEndpointEvent(dataEngineEvent);
                             break;
                         default:
                             log.debug("Ignored instance event - unknown event type");

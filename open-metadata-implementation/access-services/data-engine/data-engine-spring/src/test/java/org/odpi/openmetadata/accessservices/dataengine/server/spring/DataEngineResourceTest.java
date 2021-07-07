@@ -42,7 +42,7 @@ class DataEngineResourceTest {
         String qualifiedName = "testQualifiedName";
         dataEngineResource.getExternalDataEngineByQualifiedName(SERVER_NAME, USER, qualifiedName);
 
-        verify(dataEngineRestServices, times(1)).getExternalDataEngineByQualifiedName(SERVER_NAME, USER, qualifiedName);
+        verify(dataEngineRestServices, times(1)).getExternalDataEngine(SERVER_NAME, USER, qualifiedName);
     }
 
     @Test
@@ -83,15 +83,6 @@ class DataEngineResourceTest {
         dataEngineResource.createOrUpdateProcesses(USER, SERVER_NAME, requestBody);
 
         verify(dataEngineRestServices, times(1)).upsertProcesses(USER, SERVER_NAME, requestBody);
-    }
-
-    @Test
-    void testAddPortsToProcess() {
-        PortListRequestBody requestBody = new PortListRequestBody();
-        String processGuid = "processGuid";
-        dataEngineResource.addPortsToProcess(USER, SERVER_NAME, processGuid, requestBody);
-
-        verify(dataEngineRestServices, times(1)).addPortsToProcess(USER, SERVER_NAME, processGuid, requestBody);
     }
 
     @Test

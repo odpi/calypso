@@ -67,10 +67,6 @@ The security integration connectors run in the
 [Security Integrator Open Metadata Integration Service (OMIS)](../../../open-metadata-implementation/integration-services/security-integrator)
 hosted in the [Integration Daemon](../../../open-metadata-implementation/admin-services/docs/concepts/integration-daemon.md).
 
-* The [Apache Ranger Integration Connector](../../../open-metadata-implementation/adapters/open-connectors/governance-daemon-connectors/security-sync-connectors/ranger-connector)
-  pushes assets and schemas marked up with tags and labels from the SecurityTag classification to Apache Ranger
-  to use in security enforcement policies.
-
 ### Open Discovery Services
 
 [Open Discovery Services](../../../open-metadata-implementation/frameworks/open-discovery-framework/docs/discovery-service.md) 
@@ -100,11 +96,18 @@ They run in the
 hosted by the
 [Engine Host OMAG Server](../../../open-metadata-implementation/admin-services/docs/concepts/engine-host.md).
 
-* [Monitor for New Assets Governance Action Service](../../../open-metadata-implementation/adapters/open-connectors/governance-action-connectors)
-  listens for new assets and initiates other governance actions that ensure the asset is properly set up.
+* [Generic Element Watchdog Governance Action Service](generic-element-watchdog-governance-action-service.md)
+  listens for changing metadata elements and initiates governance action processes when certain events occur.
+  
+* [Generic Folder Watchdog Governance Action Service](generic-folder-watchdog-governance-action-service.md)
+  listens for changing assets linked to a DataFolder element.  This may be for DataFiles directly linked to the folder or
+  in sub-folders.  It initiates governance action processes when specific events occur.
   
 * [Move/Copy File Provisioning Governance Action Service](move-copy-file-provisioning-governance-action-service.md)
   moves or copied files from one location to another and maintains the lineage of the action.
+  
+* [Origin Seeker Remediation Governance Action Service](origin-seeker-remediation-governance-action-service.md) walks
+  backwards through the lineage mappings to 
 
 ### Event Bus Connectors
 
@@ -210,11 +213,6 @@ and services in the digital landscape along with stored metadata from Egeria.
   stored as a number of files within a folder (directory).
   
 ### Databases
-
- 
-* The [Gaian connector](../../../open-metadata-implementation/adapters/open-connectors/data-store-connectors/gaian-connector)
-  provides a JDBC style connector to the [Gaian](https://github.com/gaiandb/gaiandb) virtualization engine.
-
 
 ----
 * Learn how to [write your own connector](../developer-guide/what-is-a-connector.md)

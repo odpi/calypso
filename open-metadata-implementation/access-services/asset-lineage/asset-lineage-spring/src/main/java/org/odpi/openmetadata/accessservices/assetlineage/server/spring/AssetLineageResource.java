@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.List;
 
 
@@ -54,7 +54,7 @@ public class AssetLineageResource {
     public GUIDListResponse publishEntities(@PathVariable String serverName,
                                             @PathVariable String userId,
                                             @PathVariable String entityType,
-                                            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime updatedAfterDate,
+                                            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Date updatedAfterDate,
                                             @RequestParam(required = false) List<String> entitySubtypeGUIDs,
                                             @RequestParam(required = false) List<InstanceStatus> limitResultsByStatus,
                                             @RequestParam(required = false) SearchClassifications searchClassifications,
@@ -87,5 +87,22 @@ public class AssetLineageResource {
                                           @PathVariable String guid,
                                           @PathVariable String entityType) {
         return restAPI.publishEntity(serverName, userId, entityType, guid);
+    }
+
+    /**
+     * Find the entity by guid and publish the asset context for it. It applies for data tables and files.
+     *
+     * @param serverName name of server instance to call
+     * @param userId     the name of the calling user
+     * @param guid       the guid of the entity to build context
+     * @param entityType the name of the relationship type
+     * @return a list of unique identifiers (guids) of the available entities that exist in the published context
+     */
+    @GetMapping(path = "/publish-context/{entityType}/{guid}")
+    public GUIDListResponse publishAssetContext(@PathVariable String serverName,
+                                            @PathVariable String userId,
+                                            @PathVariable String guid,
+                                            @PathVariable String entityType) {
+        return restAPI.publishAssetContext(serverName, userId, entityType, guid);
     }
 }

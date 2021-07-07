@@ -7,10 +7,13 @@ import org.odpi.openmetadata.accessservices.subjectarea.ffdc.SubjectAreaAuditCod
 import org.odpi.openmetadata.accessservices.subjectarea.ffdc.SubjectAreaErrorCode;
 import org.odpi.openmetadata.accessservices.subjectarea.ffdc.exceptions.SubjectAreaCheckedException;
 import org.odpi.openmetadata.accessservices.subjectarea.handlers.SubjectAreaRelationshipHandler;
+import org.odpi.openmetadata.accessservices.subjectarea.handlers.SubjectAreaTermHandler;
 import org.odpi.openmetadata.accessservices.subjectarea.properties.objects.common.FindRequest;
-import org.odpi.openmetadata.accessservices.subjectarea.properties.objects.graph.Line;
+import org.odpi.openmetadata.accessservices.subjectarea.properties.objects.graph.Relationship;
+import org.odpi.openmetadata.accessservices.subjectarea.properties.objects.graph.RelationshipType;
+import org.odpi.openmetadata.accessservices.subjectarea.properties.objects.term.Term;
 import org.odpi.openmetadata.accessservices.subjectarea.responses.SubjectAreaOMASAPIResponse;
-import org.odpi.openmetadata.accessservices.subjectarea.server.mappers.ILineMapper;
+import org.odpi.openmetadata.accessservices.subjectarea.server.mappers.IRelationshipMapper;
 import org.odpi.openmetadata.frameworks.auditlog.AuditLog;
 import org.odpi.openmetadata.frameworks.auditlog.messagesets.ExceptionMessageDefinition;
 import org.odpi.openmetadata.frameworks.connectors.ffdc.OCFCheckedExceptionBase;
@@ -40,16 +43,16 @@ public class SubjectAreaRESTServicesInstance {
     }
 
     /**
-     * Create a Line (relationship), which is a link between two Nodes.
+     * Create a relationship (relationship), which is a link between two Nodes.
      * <p>
      *
-     * @param <L> {@link Line} type of object for response
+     * @param <R> {@link Relationship} type of object for response
      * @param serverName serverName under which this request is performed, this is used in multi tenanting to identify the tenant
      * @param restAPIName name of the rest API
      * @param userId     userId under which the request is performed
      * @param clazz       mapper Class
-     * @param line       line to create
-     * @return response, when successful contains the created line
+     * @param relationship       relationship to create
+     * @return response, when successful contains the created relationship
      * when not successful the following Exception responses can occur
      * <ul>
      * <li> UserNotAuthorizedException           the requesting user is not authorized to issue this request.</li>
@@ -61,23 +64,68 @@ public class SubjectAreaRESTServicesInstance {
      * <li> FunctionNotSupportedException        Function is not supported.
      * </ul>
      */
-    protected <L extends Line> SubjectAreaOMASAPIResponse<L> createLine(String serverName,
-                                                                        String restAPIName,
-                                                                        String userId,
-                                                                        Class<? extends ILineMapper<L>> clazz,
-                                                                        L line)
+    protected <R extends Relationship> SubjectAreaOMASAPIResponse<R> createRelationship(String serverName,
+                                                                                        String restAPIName,
+                                                                                        String userId,
+                                                                                        Class<? extends IRelationshipMapper<R>> clazz,
+                                                                                        R relationship)
     {
 
         if (log.isDebugEnabled()) {
             log.debug("==> Method: " + restAPIName + ",userId=" + userId + ",className=" + className);
         }
-        SubjectAreaOMASAPIResponse<L> response = new SubjectAreaOMASAPIResponse<>();
+        SubjectAreaOMASAPIResponse<R> response = new SubjectAreaOMASAPIResponse<>();
         AuditLog auditLog = null;
         try {
             auditLog = instanceHandler.getAuditLog(userId, serverName, restAPIName);
             SubjectAreaRelationshipHandler handler = instanceHandler.getSubjectAreaRelationshipHandler(userId, serverName, restAPIName);
-            response = handler.createLine(restAPIName, userId, clazz, line);
+            response = handler.createRelationship(restAPIName, userId, clazz, relationship);
+            if (response.results().size() >0) {
+                // if required attempt to create spine objects orientated classifications on the ends
+                // typed by should have spine attribute and spine object
+                // hasa  should have spine attribute and spine object
+                // isatypeof should have spine object and spine object
+                // isatypeofdeprecated is deprecated
+                // isa is not to do with spine objects.
+                 Relationship createdRelationship = response.results().get(0);
+                  final String relationshipName = createdRelationship.getName();
+                  SubjectAreaTermHandler termHandler = instanceHandler.getSubjectAreaTermHandler(userId, serverName, restAPIName);
+                  String end1Guid = createdRelationship.getEnd1().getNodeGuid();
+                  String end2Guid = createdRelationship.getEnd2().getNodeGuid();
 
+                  if (relationshipName.equals(RelationshipType.HasA.name()) || relationshipName.equals(RelationshipType.TypedBy.name())) {
+                      SubjectAreaOMASAPIResponse<Term> end1TermResponse = termHandler.getTermByGuid(userId, end1Guid);
+                      SubjectAreaOMASAPIResponse<Term> end2TermResponse  = termHandler.getTermByGuid(userId, end2Guid);
+                      Term end1Term = end1TermResponse.results().get(0);
+                      Term end2Term = end2TermResponse.results().get(0);
+                      if (!end1Term.isSpineObject()) {
+                          end1Term.setSpineObject(true);
+                          // ignore the response -as the repository may not set spine objects
+                          termHandler.updateTerm(userId,end1Guid, end1Term, false);
+                      }
+                      if (!end2Term.isSpineAttribute()) {
+                          end2Term.setSpineAttribute(true);
+                          // ignore the response -as the repository may not set spine attributes
+                          termHandler.updateTerm(userId,end2Guid, end2Term, false);
+                      }
+                  } else  if (relationshipName.equals(RelationshipType.IsATypeOf.name())) {
+                      SubjectAreaOMASAPIResponse<Term> end1TermResponse = termHandler.getTermByGuid(userId, end1Guid);
+                      SubjectAreaOMASAPIResponse<Term> end2TermResponse  = termHandler.getTermByGuid(userId, end2Guid);
+                      Term end1Term = end1TermResponse.results().get(0);
+                      Term end2Term = end2TermResponse.results().get(0);
+                      if (!end1Term.isSpineObject()) {
+                          end1Term.setSpineObject(true);
+                          // ignore the response -as the repository may not set spine objects
+                          termHandler.updateTerm(userId,end1Guid, end1Term, false);
+                      }
+                      if (!end2Term.isSpineObject()) {
+                          // ignore the response -as the repository may not set spine objects
+                          end2Term.setSpineObject(true);
+                          termHandler.updateTerm(userId, end2Guid, end2Term, false);
+                      }
+                  }
+
+            }
         } catch (OCFCheckedExceptionBase e) {
             response.setExceptionInfo(e, className);
         } catch (Exception exception) {
@@ -90,9 +138,9 @@ public class SubjectAreaRESTServicesInstance {
     }
 
     /**
-     * Get a Line (relationship)
+     * Get a relationship (relationship)
      *
-     * @param <L> {@link Line} type of object for response
+     * @param <L> {@link Relationship} type of object for response
      * @param serverName serverName under which this request is performed, this is used in multi tenanting to identify the tenant
      * @param restAPIName name of the rest API
      * @param userId     unique identifier for requesting user, under which the request is performed
@@ -107,11 +155,11 @@ public class SubjectAreaRESTServicesInstance {
      * <li> UnrecognizedGUIDException            the supplied guid was not recognised</li>
      * </ul>
      */
-    protected <L extends Line> SubjectAreaOMASAPIResponse<L> getLine(String serverName,
-                                                                     String restAPIName,
-                                                                     String userId,
-                                                                     Class<? extends ILineMapper<L>> clazz,
-                                                                     String guid)
+    protected <L extends Relationship> SubjectAreaOMASAPIResponse<L> getRelationship(String serverName,
+                                                                                     String restAPIName,
+                                                                                     String userId,
+                                                                                     Class<? extends IRelationshipMapper<L>> clazz,
+                                                                                     String guid)
     {
 
         if (log.isDebugEnabled()) {
@@ -122,7 +170,7 @@ public class SubjectAreaRESTServicesInstance {
         try {
             auditLog = instanceHandler.getAuditLog(userId, serverName, restAPIName);
             SubjectAreaRelationshipHandler handler = instanceHandler.getSubjectAreaRelationshipHandler(userId, serverName, restAPIName);
-            response = handler.getLine(restAPIName, userId, clazz, guid);
+            response = handler.getRelationship(restAPIName, userId, clazz, guid);
 
         } catch (OCFCheckedExceptionBase e) {
             response.setExceptionInfo(e, className);
@@ -139,15 +187,15 @@ public class SubjectAreaRESTServicesInstance {
      * Update a relationship.
      * <p>
      *
-     * @param <L> {@link Line} type of object for response
+     * @param <L> {@link Relationship} type of object for response
      * @param serverName serverName under which this request is performed, this is used in multi tenanting to identify the tenant
      * @param restAPIName rest api name
      * @param userId     userId under which the request is performed
-     * @param guid        unique identifier of the Line
+     * @param guid        unique identifier of the relationship
      * @param clazz       mapper Class
-     * @param line       the relationship to update
+     * @param relationship       the relationship to update
      * @param isReplace  flag to indicate that this update is a replace. When not set only the supplied (non null) fields are updated.
-     * @return response,              when successful contains the updated Line
+     * @return response,              when successful contains the updated relationship
      * when not successful the following Exception responses can occur
      * <ul>
      * <li> UserNotAuthorizedException           the requesting user is not authorized to issue this request.</li>
@@ -159,13 +207,13 @@ public class SubjectAreaRESTServicesInstance {
      * <li> FunctionNotSupportedException        Function not supported.</li>
      * </ul>
      */
-    protected <L extends Line> SubjectAreaOMASAPIResponse<L> updateLine(String serverName,
-                                                                        String restAPIName,
-                                                                        String userId,
-                                                                        String guid,
-                                                                        Class<? extends ILineMapper<L>> clazz,
-                                                                        L line,
-                                                                        boolean isReplace)
+    protected <L extends Relationship> SubjectAreaOMASAPIResponse<L> updateRelationship(String serverName,
+                                                                                        String restAPIName,
+                                                                                        String userId,
+                                                                                        String guid,
+                                                                                        Class<? extends IRelationshipMapper<L>> clazz,
+                                                                                        L relationship,
+                                                                                        boolean isReplace)
     {
         if (log.isDebugEnabled()) {
             log.debug("==> Method: " + restAPIName + ",userId=" + userId + ",className=" + className);
@@ -175,7 +223,7 @@ public class SubjectAreaRESTServicesInstance {
         try {
             auditLog = instanceHandler.getAuditLog(userId, serverName, restAPIName);
             SubjectAreaRelationshipHandler handler = instanceHandler.getSubjectAreaRelationshipHandler(userId, serverName, restAPIName);
-            response = handler.updateLine(restAPIName, userId, guid, clazz, line, isReplace);
+            response = handler.updateRelationship(restAPIName, userId, guid, clazz, relationship, isReplace);
 
         } catch (OCFCheckedExceptionBase e) {
             response.setExceptionInfo(e, className);
@@ -189,9 +237,9 @@ public class SubjectAreaRESTServicesInstance {
     }
 
     /**
-     * Delete a Line (relationship)
+     * Delete a relationship (relationship)
      *
-     * @param <L> {@link Line} type of object for response
+     * @param <L> {@link Relationship} type of object for response
      * @param serverName serverName under which this request is performed, this is used in multi tenanting to identify the tenant
      * @param restAPIName rest API name
      * @param userId     unique identifier for requesting user, under which the request is performed
@@ -210,12 +258,12 @@ public class SubjectAreaRESTServicesInstance {
      * <li> EntityNotPurgedException               a hard delete was issued but the relationship was not purged</li>
      * </ul>
      */
-    public <L extends Line> SubjectAreaOMASAPIResponse<L> deleteLine(String serverName,
-                                                                     String restAPIName,
-                                                                     String userId,
-                                                                     Class<? extends ILineMapper<L>> clazz,
-                                                                     String guid,
-                                                                     Boolean isPurge)
+    public <L extends Relationship> SubjectAreaOMASAPIResponse<L> deleteRelationship(String serverName,
+                                                                                     String restAPIName,
+                                                                                     String userId,
+                                                                                     Class<? extends IRelationshipMapper<L>> clazz,
+                                                                                     String guid,
+                                                                                     Boolean isPurge)
     {
 
         if (log.isDebugEnabled()) {
@@ -226,7 +274,7 @@ public class SubjectAreaRESTServicesInstance {
         try {
             auditLog = instanceHandler.getAuditLog(userId, serverName, restAPIName);
             SubjectAreaRelationshipHandler handler = instanceHandler.getSubjectAreaRelationshipHandler(userId, serverName, restAPIName);
-            response = handler.deleteLine(restAPIName, userId, clazz, guid, isPurge);
+            response = handler.deleteRelationship(restAPIName, userId, clazz, guid, isPurge);
 
         } catch (OCFCheckedExceptionBase e) {
             response.setExceptionInfo(e, className);
@@ -240,11 +288,11 @@ public class SubjectAreaRESTServicesInstance {
     }
 
     /**
-     * Restore a Line (relationship).
+     * Restore a relationship (relationship).
      * <p>
      * Restore allows the deleted relationship to be made active again. Restore allows deletes to be undone. Hard deletes are not stored in the repository so cannot be restored.
      *
-     * @param <L> {@link Line} type of object for response
+     * @param <L> {@link Relationship} type of object for response
      * @param serverName serverName under which this request is performed, this is used in multi tenanting to identify the tenant
      * @param restAPIName name of the rest API
      * @param userId     unique identifier for requesting user, under which the request is performed
@@ -262,11 +310,11 @@ public class SubjectAreaRESTServicesInstance {
      * <li> EntityNotPurgedException               a hard delete was issued but the relationship was not purged</li>
      * </ul>
      */
-    protected <L extends Line> SubjectAreaOMASAPIResponse<L> restoreLine(String serverName,
-                                                                         String restAPIName,
-                                                                         String userId,
-                                                                         Class<? extends ILineMapper<L>> clazz,
-                                                                         String guid)
+    protected <L extends Relationship> SubjectAreaOMASAPIResponse<L> restoreRelationship(String serverName,
+                                                                                         String restAPIName,
+                                                                                         String userId,
+                                                                                         Class<? extends IRelationshipMapper<L>> clazz,
+                                                                                         String guid)
     {
         if (log.isDebugEnabled()) {
             log.debug("==> Method: " + restAPIName + ",userId=" + userId + ",className=" + className);
@@ -276,7 +324,7 @@ public class SubjectAreaRESTServicesInstance {
         try {
             auditLog = instanceHandler.getAuditLog(userId, serverName, restAPIName);
             SubjectAreaRelationshipHandler handler = instanceHandler.getSubjectAreaRelationshipHandler(userId, serverName, restAPIName);
-            response = handler.restoreLine(restAPIName, userId, clazz, guid);
+            response = handler.restoreRelationship(restAPIName, userId, clazz, guid);
 
         } catch (OCFCheckedExceptionBase e) {
             response.setExceptionInfo(e, className);

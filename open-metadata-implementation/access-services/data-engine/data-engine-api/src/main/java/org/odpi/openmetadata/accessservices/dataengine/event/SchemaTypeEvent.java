@@ -5,9 +5,12 @@ package org.odpi.openmetadata.accessservices.dataengine.event;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.odpi.openmetadata.accessservices.dataengine.model.SchemaType;
-
-import java.util.Objects;
 
 import static com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.NONE;
 import static com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.PUBLIC_ONLY;
@@ -18,45 +21,33 @@ import static com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.PUBLIC_
 @JsonAutoDetect(getterVisibility = PUBLIC_ONLY, setterVisibility = PUBLIC_ONLY, fieldVisibility = NONE)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class SchemaTypeEvent extends DataEngineEventHeader{
-
-    private SchemaType schemaType;
+@Getter
+@Setter
+@EqualsAndHashCode(callSuper = true)
+@ToString(callSuper = true)
+public class SchemaTypeEvent extends DataEngineEventHeader {
 
     /**
-     * Gets schema type.
-     *
-     * @return the schema type
+     * The port qualified name
+     * -- GETTER --
+     * Returns the port qualified name
+     * @return the port qualified name
+     * -- SETTER --
+     * Sets up the port qualified name
+     * @param portQualifiedName the port qualified name
      */
-    public SchemaType getSchemaType() {
-        return schemaType;
-    }
+    private String portQualifiedName;
 
     /**
-     * Sets schema type.
-     *
+     * The schema type
+     * -- GETTER --
+     * Returns the schema type
+     * @return the schema type
+     * -- SETTER --
+     * Sets up the schema type
      * @param schemaType the schema type
      */
-    public void setSchemaType(SchemaType schemaType) {
-        this.schemaType = schemaType;
-    }
+    @JsonProperty("schema")
+    private SchemaType schemaType;
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        SchemaTypeEvent that = (SchemaTypeEvent) o;
-        return Objects.equals(schemaType, that.schemaType);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(schemaType);
-    }
-
-    @Override
-    public String toString() {
-        return "SchemaTypeEvent{" +
-                "schemaType=" + schemaType +
-                "} " + super.toString();
-    }
 }

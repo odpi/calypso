@@ -10,8 +10,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * MoveCopyFileGovernanceActionProvider is the OCF connector provider for the Move or Copy File Provisioning Governance Action Service.
- * This is a Provisioning Governance Action Service.
+ * GenericFolderWatchdogGovernanceActionProvider is the OCF connector provider for the Generic Folder Watchdog Governance Action Service.
+ * This is a Watchdog Governance Action Service.
  */
 public class GenericFolderWatchdogGovernanceActionProvider extends GenericWatchdogGovernanceActionProvider
 {
@@ -51,8 +51,9 @@ public class GenericFolderWatchdogGovernanceActionProvider extends GenericWatchd
 
         supportedRequestParameters = new ArrayList<>();
         supportedRequestParameters.add(CHANGED_PROPERTY_NAMES);
+        supportedRequestParameters.add(ACTION_TARGET_NAME_PROPERTY);
+        supportedRequestParameters.add(ACTION_TARGET_TWO_NAME_PROPERTY);
         supportedRequestParameters.add(FOLDER_NAME_PROPERTY);
-        supportedRequestParameters.add(INTERESTING_TYPE_NAME_PROPERTY);
         supportedRequestParameters.add(NEW_ELEMENT_PROCESS_NAME_PROPERTY);
         supportedRequestParameters.add(UPDATED_ELEMENT_PROCESS_NAME_PROPERTY);
         supportedRequestParameters.add(DELETED_ELEMENT_PROCESS_NAME_PROPERTY);
@@ -79,7 +80,14 @@ public class GenericFolderWatchdogGovernanceActionProvider extends GenericWatchd
 
         List<String> recognizedConfigurationProperties = new ArrayList<>();
         recognizedConfigurationProperties.add(FOLDER_NAME_PROPERTY);
-
+        recognizedConfigurationProperties.add(ACTION_TARGET_NAME_PROPERTY);
+        recognizedConfigurationProperties.add(ACTION_TARGET_TWO_NAME_PROPERTY);
+        recognizedConfigurationProperties.add(NEW_ELEMENT_PROCESS_NAME_PROPERTY);
+        recognizedConfigurationProperties.add(UPDATED_ELEMENT_PROCESS_NAME_PROPERTY);
+        recognizedConfigurationProperties.add(DELETED_ELEMENT_PROCESS_NAME_PROPERTY);
+        recognizedConfigurationProperties.add(CLASSIFIED_ELEMENT_PROCESS_NAME_PROPERTY);
+        recognizedConfigurationProperties.add(RECLASSIFIED_ELEMENT_PROCESS_NAME_PROPERTY);
+        recognizedConfigurationProperties.add(DECLASSIFIED_ELEMENT_PROCESS_NAME_PROPERTY);
         connectorType.setRecognizedConfigurationProperties(recognizedConfigurationProperties);
 
         super.connectorTypeBean = connectorType;

@@ -109,6 +109,10 @@ so acts as a guide to the types of content in the asset and how to navigate arou
 With the schema in place, it is possible to search for assets based on the
 type of data, or type of operations that the asset supports.
 
+#### More information
+
+[Modelling Schema](../modelling-technology/modelling-schemas.md)
+
 ----
 ## Asset Ownership
 
@@ -119,9 +123,10 @@ This covers ensuring the catalog entry is correct,
 the contents of the asset are complete and correct and controlling access
 to the asset.
 
-The owner can be defined as a user identity, a personal profile or a team profile.
+The owner can be defined as a user identity, an actor profile or a person's role.
 These definitions are managed by the
-[Community Profile OMAS](../../../open-metadata-implementation/access-services/community-profile).
+[Community Profile OMAS](../../../open-metadata-implementation/access-services/community-profile) and 
+[Governance Program OMAS](../../../open-metadata-implementation/access-services/governance-program).
 
 #### Usage
 
@@ -135,9 +140,13 @@ asset and requests for access to its contents.
 
 ![Asset Zone Membership](asset-zone-membership.png)
 
-Governance Zones allow assets to be grouped according to their usage.  It is possible to
-assign supported zones to Egeria Open Metadata Access Services (OMASs) to limit the scope
+Governance Zones allow assets to be grouped according to their usage.  
+Governance Zones are defined by the
+[Governance Program OMAS](../../../open-metadata-implementation/access-services/governance-program)
+It is possible to
+assign supported zones to assets through the  to limit the scope
 of assets that are returned from searches.
+More information on Governance Zones if described [here](../../../open-metadata-implementation/access-services/docs/concepts/governance-zones)
 
 #### Usage
 
@@ -225,8 +234,13 @@ The types of classifiers are:
   its data fields/operations.  This is effectively a way of crowd sourcing knowledge about
   the asset.
   
+* Search keywords are typically attached to an asset by the asset owner to improve
+  the findability of an asset - particularly if it has a name that is difficult to
+  remember.
+  
 * Governance classifications provide formal classifiers for confidentiality,
-  retention, confidence and criticality for the asset.
+  retention, confidence and criticality for the asset. The impact classification
+  is typically used with reports that link to the asst such as incident reports.
 
 
 #### Usage
@@ -330,7 +344,8 @@ part of.  Digital Services are anchors for information about the digital service
 (also known as offerings or products) that the organization is operating.
 This is a business view of the service that the asset is a part of.
 
-Finally, the asset can include identifiers of other metadata elements from the catalog.
+Finally, the asset can include identifiers of other metadata elements from the catalog and related
+properties in the **AssetOrigin** Classification.
 This includes:
 * Unique identifier (GUID) of the business capability that owns the asset.  Examples of 
 a business capabilities include "Finance", "Human Resources", "Manufacturing", "Sales", etc 

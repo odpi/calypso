@@ -1582,7 +1582,7 @@ public class OMRSRepositoryPropertiesUtilities implements OMRSRepositoryProperti
                                                              Map<String, String> mapValues,
                                                              String              methodName)
     {
-        if (mapValues != null)
+        if ((mapValues != null ) && (! mapValues.isEmpty()))
         {
             log.debug("Adding property " + propertyName + " for " + methodName);
 
@@ -1998,6 +1998,11 @@ public class OMRSRepositoryPropertiesUtilities implements OMRSRepositoryProperti
                     primitivePropertyValue.setTypeGUID(PrimitiveDefCategory.OM_PRIMITIVE_TYPE_DOUBLE.getGUID());
                     primitivePropertyValue.setPrimitiveValue(mapPropertyValue);
                     resultingProperties.setProperty(mapPropertyName, primitivePropertyValue);
+                    propertyCount++;
+                }
+                else if (mapPropertyValue instanceof InstancePropertyValue)
+                {
+                    resultingProperties.setProperty(mapPropertyName, (InstancePropertyValue)mapPropertyValue);
                     propertyCount++;
                 }
                 else if (mapPropertyValue != null)

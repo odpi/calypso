@@ -94,6 +94,13 @@ public class DatabaseTableConverter<B> extends DataManagerOMASConverter<B>
                     databaseTableProperties.setExtendedProperties(this.getRemainingExtendedProperties(instanceProperties));
 
                     bean.setDatabaseTableProperties(databaseTableProperties);
+
+                    if (schemaType instanceof SchemaTypeElement)
+                    {
+                        SchemaTypeElement schemaTypeElement = (SchemaTypeElement)schemaType;
+
+                        bean.setDatabaseColumnCount(schemaTypeElement.getAttributeCount());
+                    }
                 }
                 else
                 {

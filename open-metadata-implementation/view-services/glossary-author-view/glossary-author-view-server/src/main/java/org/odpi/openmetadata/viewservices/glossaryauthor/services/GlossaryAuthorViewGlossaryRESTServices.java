@@ -9,7 +9,7 @@ import org.odpi.openmetadata.accessservices.subjectarea.properties.objects.categ
 import org.odpi.openmetadata.accessservices.subjectarea.properties.objects.common.Config;
 import org.odpi.openmetadata.accessservices.subjectarea.properties.objects.common.FindRequest;
 import org.odpi.openmetadata.accessservices.subjectarea.properties.objects.glossary.Glossary;
-import org.odpi.openmetadata.accessservices.subjectarea.properties.objects.graph.Line;
+import org.odpi.openmetadata.accessservices.subjectarea.properties.objects.graph.Relationship;
 import org.odpi.openmetadata.accessservices.subjectarea.properties.objects.nodesummary.GlossarySummary;
 import org.odpi.openmetadata.accessservices.subjectarea.properties.objects.term.Term;
 import org.odpi.openmetadata.accessservices.subjectarea.responses.SubjectAreaOMASAPIResponse;
@@ -120,7 +120,9 @@ public class GlossaryAuthorViewGlossaryRESTServices extends BaseGlossaryAuthorVi
      *
      * @param serverName         name of the local UI server.
      * @param userId             user identifier
-     * @param searchCriteria     String expression matching Glossary property values .
+     * @param searchCriteria     String expression matching Glossary property values.
+     * @param exactValue a boolean, which when set means that only exact matches will be returned, otherwise matches that start with the search criteria will be returned.
+     * @param ignoreCase a boolean, which when set means that case will be ignored, if not set that case will be respected
      * @param asOfTime           the glossaries returned as they were at this time. null indicates at the current time.
      * @param startingFrom             the starting element number for this set of results.  This is used when retrieving elements
      *                           beyond the first page of results. Zero means the results start from the first element.
@@ -139,6 +141,8 @@ public class GlossaryAuthorViewGlossaryRESTServices extends BaseGlossaryAuthorVi
             String userId,
             Date asOfTime,
             String searchCriteria,
+            boolean exactValue,
+            boolean ignoreCase,
             Integer startingFrom,
             Integer pageSize,
             SequencingOrder sequencingOrder,
@@ -165,7 +169,7 @@ public class GlossaryAuthorViewGlossaryRESTServices extends BaseGlossaryAuthorVi
             FindRequest findRequest = getFindRequest(searchCriteria, asOfTime, startingFrom, pageSize, sequencingOrder.name(), sequencingProperty, invalidParameterHandler.getMaxPagingSize());
             SubjectAreaConfigClient client = instanceHandler.getSubjectAreaConfigClient(serverName, userId, methodName);
             Config subjectAreaConfig = client.getConfig(userId);
-            List<Glossary> glossaries = clients.glossaries().find(userId, findRequest, subjectAreaConfig.getMaxPageSize());
+            List<Glossary> glossaries = clients.glossaries().find(userId, findRequest, exactValue, ignoreCase, subjectAreaConfig.getMaxPageSize());
             response.addAllResults(glossaries);
         } catch (Exception exception) {
             response = getResponseForException(exception, auditLog, className, methodName);
@@ -194,7 +198,7 @@ public class GlossaryAuthorViewGlossaryRESTServices extends BaseGlossaryAuthorVi
      * <li> PropertyServerException              Property server exception. </li>
      * </ul>
      */
-    public SubjectAreaOMASAPIResponse<Line> getGlossaryRelationships(
+    public SubjectAreaOMASAPIResponse<Relationship> getGlossaryRelationships(
             String serverName,
             String userId,
             String guid,
@@ -205,11 +209,11 @@ public class GlossaryAuthorViewGlossaryRESTServices extends BaseGlossaryAuthorVi
             String sequencingProperty
 
 
-                                                                    ) {
+                                                                            ) {
         final String methodName = "getGlossaryRelationships";
 
         RESTCallToken token = restCallLogger.logRESTCall(serverName, userId, methodName);
-        SubjectAreaOMASAPIResponse<Line> response = new SubjectAreaOMASAPIResponse<>();
+        SubjectAreaOMASAPIResponse<Relationship> response = new SubjectAreaOMASAPIResponse<>();
         AuditLog auditLog = null;
         try {
             if (pageSize == null) {
@@ -225,8 +229,8 @@ public class GlossaryAuthorViewGlossaryRESTServices extends BaseGlossaryAuthorVi
             findRequest.setSequencingOrder(sequencingOrder);
             findRequest.setSequencingProperty(sequencingProperty);
 
-            List<Line> lines = clients.glossaries().getRelationships(userId, guid, findRequest);
-            response.addAllResults(lines);
+            List<Relationship> relationships = clients.glossaries().getRelationships(userId, guid, findRequest);
+            response.addAllResults(relationships);
         } catch (Exception exception) {
             response = getResponseForException(exception, auditLog, className, methodName);
         }
@@ -493,6 +497,8 @@ public class GlossaryAuthorViewGlossaryRESTServices extends BaseGlossaryAuthorVi
      * @param userId       unique identifier for requesting user, under which the request is performed
      * @param guid         guid of the category to get terms
      * @param searchCriteria String expression matching child Term property values.
+     * @param exactValue a boolean, which when set means that only exact matches will be returned, otherwise matches that start with the search criteria will be returned.
+     * @param ignoreCase a boolean, which when set means that case will be ignored, if not set that case will be respected
      * @param asOfTime     the categories returned as they were at this time. null indicates at the current time.
      * @param onlyTop      when only the top categories (those categories without parents) are returned.
      * @param startingFrom the starting element number for this set of results.  This is used when retrieving elements
@@ -508,7 +514,18 @@ public class GlossaryAuthorViewGlossaryRESTServices extends BaseGlossaryAuthorVi
      * <li> PropertyServerException              Property server exception. </li>
      * </ul>
      * */
-    public SubjectAreaOMASAPIResponse<Category> getCategories(String serverName, String userId, String guid, String searchCriteria, Date asOfTime, Boolean onlyTop, Integer startingFrom, Integer pageSize, String sequencingOrder, String sequencingProperty) {
+    public SubjectAreaOMASAPIResponse<Category> getCategories(String serverName,
+                                                              String userId,
+                                                              String guid,
+                                                              String searchCriteria,
+                                                              boolean exactValue,
+                                                              boolean ignoreCase,
+                                                              Date asOfTime,
+                                                              Boolean onlyTop,
+                                                              Integer startingFrom,
+                                                              Integer pageSize,
+                                                              String sequencingOrder,
+                                                              String sequencingProperty) {
 
 
         final String methodName = "getCategories";
@@ -527,7 +544,7 @@ public class GlossaryAuthorViewGlossaryRESTServices extends BaseGlossaryAuthorVi
             SubjectAreaConfigClient client = instanceHandler.getSubjectAreaConfigClient(serverName, userId, methodName);
             Config subjectAreaConfig = client.getConfig(userId);
             SubjectAreaNodeClients clients = instanceHandler.getSubjectAreaNodeClients(serverName, userId, methodName);
-            List<Category> categories = ((SubjectAreaGlossaryClient)clients.glossaries()).getCategories(userId, guid, findRequest, onlyTop, subjectAreaConfig.getMaxPageSize());
+            List<Category> categories = ((SubjectAreaGlossaryClient)clients.glossaries()).getCategories(userId, guid, findRequest,  onlyTop, exactValue, ignoreCase, subjectAreaConfig.getMaxPageSize());
             response.addAllResults(categories);
         } catch (Exception exception) {
             response = getResponseForException(exception, auditLog, className, methodName);
@@ -542,6 +559,8 @@ public class GlossaryAuthorViewGlossaryRESTServices extends BaseGlossaryAuthorVi
      * @param userId     unique identifier for requesting user, under which the request is performed
      * @param guid       guid of the category to get terms
      * @param searchCriteria String expression matching child Term property values.
+     * @param exactValue a boolean, which when set means that only exact matches will be returned, otherwise matches that start with the search criteria will be returned.
+     * @param ignoreCase a boolean, which when set means that case will be ignored, if not set that case will be respected
      * @param asOfTime   the terms returned as they were at this time. null indicates at the current time.
      * @param startingFrom the starting element number for this set of results.  This is used when retrieving elements
      * @param sequencingOrder the sequencing order for the results.
@@ -556,7 +575,17 @@ public class GlossaryAuthorViewGlossaryRESTServices extends BaseGlossaryAuthorVi
      * <li> PropertyServerException              Property server exception. </li>
      * </ul>
      * */
-    public SubjectAreaOMASAPIResponse<Term> getTerms(String serverName, String userId, String guid, String searchCriteria, Date asOfTime, Integer startingFrom, Integer pageSize, String sequencingOrder,String sequencingProperty) {
+    public SubjectAreaOMASAPIResponse<Term> getTerms(String serverName,
+                                                     String userId,
+                                                     String guid,
+                                                     String searchCriteria,
+                                                     boolean exactValue,
+                                                     boolean ignoreCase,
+                                                     Date asOfTime,
+                                                     Integer startingFrom,
+                                                     Integer pageSize,
+                                                     String sequencingOrder,
+                                                     String sequencingProperty) {
 
 
         final String methodName = "getTerms";
@@ -573,7 +602,7 @@ public class GlossaryAuthorViewGlossaryRESTServices extends BaseGlossaryAuthorVi
             SubjectAreaConfigClient client = instanceHandler.getSubjectAreaConfigClient(serverName, userId, methodName);
             Config subjectAreaConfig = client.getConfig(userId);
             SubjectAreaNodeClients clients = instanceHandler.getSubjectAreaNodeClients(serverName, userId, methodName);
-            List<Term> terms = ((SubjectAreaGlossaryClient)clients.glossaries()).getTerms(userId, guid, findRequest, subjectAreaConfig.getMaxPageSize());
+            List<Term> terms = ((SubjectAreaGlossaryClient)clients.glossaries()).getTerms(userId, guid, findRequest, exactValue, ignoreCase, subjectAreaConfig.getMaxPageSize());
             response.addAllResults(terms);
         } catch (Exception exception) {
             response = getResponseForException(exception, auditLog, className, methodName);

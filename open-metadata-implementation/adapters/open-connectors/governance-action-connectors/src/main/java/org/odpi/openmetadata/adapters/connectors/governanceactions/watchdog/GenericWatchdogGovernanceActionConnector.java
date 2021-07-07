@@ -6,13 +6,12 @@ import org.odpi.openmetadata.adapters.connectors.governanceactions.ffdc.Governan
 import org.odpi.openmetadata.adapters.connectors.governanceactions.ffdc.GovernanceActionConnectorsErrorCode;
 import org.odpi.openmetadata.frameworks.connectors.ffdc.ConnectorCheckedException;
 import org.odpi.openmetadata.frameworks.connectors.ffdc.OCFCheckedExceptionBase;
-import org.odpi.openmetadata.frameworks.connectors.properties.ConnectionProperties;
 import org.odpi.openmetadata.frameworks.governanceaction.WatchdogGovernanceActionService;
 import org.odpi.openmetadata.frameworks.governanceaction.events.*;
 import org.odpi.openmetadata.frameworks.governanceaction.ffdc.GovernanceServiceException;
 import org.odpi.openmetadata.frameworks.governanceaction.properties.ActionTargetElement;
 import org.odpi.openmetadata.frameworks.governanceaction.properties.CompletionStatus;
-import org.odpi.openmetadata.frameworks.governanceaction.properties.RelatedMetadataElements;
+import org.odpi.openmetadata.frameworks.governanceaction.properties.NewActionTarget;
 import org.odpi.openmetadata.frameworks.governanceaction.search.ElementProperties;
 
 import java.util.*;
@@ -22,19 +21,21 @@ import java.util.*;
  */
 public abstract class GenericWatchdogGovernanceActionConnector extends WatchdogGovernanceActionService
 {
-    protected List<String> instancesToListenTo = new ArrayList<>();
+    List<String> instancesToListenTo = new ArrayList<>();
 
-    protected String newElementProcessName = null;
-    protected String updatedElementProcessName = null;
-    protected String deletedElementProcessName = null;
-    protected String classifiedElementProcessName = null;
-    protected String reclassifiedElementProcessName = null;
-    protected String declassifiedElementProcessName = null;
-    protected String newRelationshipProcessName = null;
-    protected String updatedRelationshipProcessName = null;
-    protected String deletedRelationshipProcessName = null;
+    String actionTargetName = null;
+    String actionTargetTwoName = null;
+    String newElementProcessName = null;
+    String updatedElementProcessName = null;
+    String deletedElementProcessName = null;
+    String classifiedElementProcessName = null;
+    String reclassifiedElementProcessName = null;
+    String declassifiedElementProcessName = null;
+    String newRelationshipProcessName = null;
+    String updatedRelationshipProcessName = null;
+    String deletedRelationshipProcessName = null;
 
-    protected volatile boolean completed = false;
+    volatile boolean completed = false;
 
 
 
@@ -46,7 +47,7 @@ public abstract class GenericWatchdogGovernanceActionConnector extends WatchdogG
      *
      * @throws ConnectorCheckedException there is a problem within the governance action service.
      */
-    public void start(String defaultTypeName) throws ConnectorCheckedException
+    void start(String defaultTypeName) throws ConnectorCheckedException
     {
         super.start();
 
@@ -80,6 +81,8 @@ public abstract class GenericWatchdogGovernanceActionConnector extends WatchdogG
             }
         }
 
+        actionTargetName = getProperty(GenericElementWatchdogGovernanceActionProvider.ACTION_TARGET_NAME_PROPERTY, "receivedElement");
+        actionTargetTwoName = getProperty(GenericElementWatchdogGovernanceActionProvider.ACTION_TARGET_TWO_NAME_PROPERTY, "receivedElementTwo");
         newElementProcessName = getProperty(GenericElementWatchdogGovernanceActionProvider.NEW_ELEMENT_PROCESS_NAME_PROPERTY, null);
         updatedElementProcessName = getProperty(GenericElementWatchdogGovernanceActionProvider.UPDATED_ELEMENT_PROCESS_NAME_PROPERTY, null);
         deletedElementProcessName = getProperty(GenericElementWatchdogGovernanceActionProvider.DELETED_ELEMENT_PROCESS_NAME_PROPERTY, null);
@@ -175,7 +178,7 @@ public abstract class GenericWatchdogGovernanceActionConnector extends WatchdogG
                 List<String> outputGuards = new ArrayList<>();
 
                 outputGuards.add(GenericElementWatchdogGovernanceActionProvider.MONITORING_FAILED);
-                governanceContext.recordCompletionStatus(CompletionStatus.FAILED, outputGuards, null);
+                governanceContext.recordCompletionStatus(CompletionStatus.FAILED, outputGuards);
             }
             catch (Exception nestedError)
             {
@@ -332,29 +335,59 @@ public abstract class GenericWatchdogGovernanceActionConnector extends WatchdogG
      *
      * @param processName name of the process to start
      * @param requestParameters parameters to pass to the process
-     * @param actionTargetGUIDs the elements that this process should work on
+     * @param actionTargets the elements that this process should work on
      * @throws GovernanceServiceException unable to start the process
      */
-    protected void initiateProcess(String              processName,
-                                   Map<String, String> requestParameters,
-                                   List<String>        actionTargetGUIDs) throws GovernanceServiceException
+    protected void initiateProcess(String                processName,
+                                   Map<String, String>   requestParameters,
+                                   List<NewActionTarget> actionTargets) throws GovernanceServiceException
     {
+        final String methodName = "initiateProcess";
+
+
         if (processName != null)
         {
+            String requestParametersString = "<null>";
+            if (requestParameters != null)
+            {
+                requestParametersString = requestParameters.toString();
+            }
+
+            String actionTargetsString = "<null>";
+            if (actionTargets != null)
+            {
+                actionTargetsString = actionTargets.toString();
+            }
+
             try
             {
+                if (auditLog != null)
+                {
+                    auditLog.logMessage(methodName,
+                                        GovernanceActionConnectorsAuditCode.INITIATE_PROCESS.getMessageDefinition(governanceServiceName,
+                                                                                                                  processName,
+                                                                                                                  requestParametersString,
+                                                                                                                  actionTargetsString));
+                }
+
                 governanceContext.initiateGovernanceActionProcess(processName,
                                                                   requestParameters,
                                                                   null,
-                                                                  actionTargetGUIDs,
+                                                                  actionTargets,
                                                                   null);
             }
             catch (OCFCheckedExceptionBase nestedError)
             {
-                // todo log error
                 if (auditLog != null)
                 {
-
+                    auditLog.logException(methodName,
+                                          GovernanceActionConnectorsAuditCode.INITIATE_PROCESS_EXCEPTION.getMessageDefinition(governanceServiceName,
+                                                                                                                              nestedError.getClass().getName(),
+                                                                                                                              processName,
+                                                                                                                              requestParametersString,
+                                                                                                                              actionTargetsString,
+                                                                                                                              nestedError.getMessage()),
+                                          nestedError);
                 }
 
                 try
@@ -362,16 +395,23 @@ public abstract class GenericWatchdogGovernanceActionConnector extends WatchdogG
                     List<String> outputGuards = new ArrayList<>();
                     outputGuards.add(GenericElementWatchdogGovernanceActionProvider.MONITORING_FAILED);
 
-                    governanceContext.recordCompletionStatus(CompletionStatus.FAILED, outputGuards, null);
+                    governanceContext.recordCompletionStatus(CompletionStatus.FAILED, outputGuards);
                 }
                 catch (Exception contextError)
                 {
-                    // todo log error
                     if (auditLog != null)
                     {
-
+                        auditLog.logException(methodName,
+                                              GovernanceActionConnectorsAuditCode.INITIATE_PROCESS_EXCEPTION.getMessageDefinition(governanceServiceName,
+                                                                                                                                  contextError.getClass().getName(),
+                                                                                                                                  processName,
+                                                                                                                                  requestParametersString,
+                                                                                                                                  actionTargetsString,
+                                                                                                                                  contextError.getMessage()),
+                                              contextError);
                     }
                 }
+
                 throw new GovernanceServiceException(nestedError.getMessage(), nestedError);
             }
         }

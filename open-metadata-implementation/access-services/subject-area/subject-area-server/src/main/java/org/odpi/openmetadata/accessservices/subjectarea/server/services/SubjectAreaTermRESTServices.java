@@ -5,7 +5,7 @@ package org.odpi.openmetadata.accessservices.subjectarea.server.services;
 import org.odpi.openmetadata.accessservices.subjectarea.handlers.SubjectAreaTermHandler;
 import org.odpi.openmetadata.accessservices.subjectarea.properties.objects.category.Category;
 import org.odpi.openmetadata.accessservices.subjectarea.properties.objects.common.FindRequest;
-import org.odpi.openmetadata.accessservices.subjectarea.properties.objects.graph.Line;
+import org.odpi.openmetadata.accessservices.subjectarea.properties.objects.graph.Relationship;
 import org.odpi.openmetadata.accessservices.subjectarea.properties.objects.term.Term;
 import org.odpi.openmetadata.accessservices.subjectarea.responses.SubjectAreaOMASAPIResponse;
 import org.odpi.openmetadata.frameworks.auditlog.AuditLog;
@@ -139,20 +139,20 @@ public class SubjectAreaTermRESTServices extends SubjectAreaRESTServicesInstance
      * <li> UnrecognizedGUIDException            the supplied guid was not recognised</li>
      * </ul>
      */
-    public SubjectAreaOMASAPIResponse<Line> getTermRelationships(String serverName,
-                                                                 String userId,
-                                                                 String guid,
-                                                                 Date asOfTime,
-                                                                 Integer startingFrom,
-                                                                 Integer pageSize,
-                                                                 SequencingOrder sequencingOrder,
-                                                                 String sequencingProperty
-    ) {
+    public SubjectAreaOMASAPIResponse<Relationship> getTermRelationships(String serverName,
+                                                                         String userId,
+                                                                         String guid,
+                                                                         Date asOfTime,
+                                                                         Integer startingFrom,
+                                                                         Integer pageSize,
+                                                                         SequencingOrder sequencingOrder,
+                                                                         String sequencingProperty
+                                                                        ) {
         String methodName = "getTermRelationships";
         if (log.isDebugEnabled()) {
             log.debug("==> Method: " + methodName + ",userId=" + userId + ",guid=" + guid);
         }
-        SubjectAreaOMASAPIResponse<Line> response = new SubjectAreaOMASAPIResponse<>();
+        SubjectAreaOMASAPIResponse<Relationship> response = new SubjectAreaOMASAPIResponse<>();
         AuditLog auditLog = null;
         try {
             auditLog = instanceHandler.getAuditLog(userId, serverName, methodName);
@@ -181,6 +181,8 @@ public class SubjectAreaTermRESTServices extends SubjectAreaRESTServicesInstance
      * @param serverName serverName under which this request is performed, this is used in multi tenanting to identify the tenant
      * @param userId unique identifier for requesting user, under which the request is performed
      * @param searchCriteria String expression matching Term property values (this does not include the TermSummary content). When not specified, all terms are returned.
+     * @param exactValue a boolean, which when set means that only exact matches will be returned, otherwise matches that start with the search criteria will be returned.
+     * @param ignoreCase a boolean, which when set means that case will be ignored, if not set that case will be respected
      * @param asOfTime the relationships returned as they were at this time. null indicates at the current time.
      * @param startingFrom  the starting element number for this set of results.  This is used when retrieving elements
      *                 beyond the first page of results. Zero means the results start from the first element.
@@ -198,6 +200,8 @@ public class SubjectAreaTermRESTServices extends SubjectAreaRESTServicesInstance
      */
     public SubjectAreaOMASAPIResponse<Term> findTerm(String serverName, String userId,
                                                      String searchCriteria,
+                                                     boolean exactValue,
+                                                     boolean ignoreCase,
                                                      Date asOfTime,
                                                      Integer startingFrom,
                                                      Integer pageSize,
@@ -214,7 +218,7 @@ public class SubjectAreaTermRESTServices extends SubjectAreaRESTServicesInstance
             auditLog = instanceHandler.getAuditLog(userId, serverName, methodName);
             SubjectAreaTermHandler handler = instanceHandler.getSubjectAreaTermHandler(userId, serverName, methodName);
             FindRequest findRequest = getFindRequest(searchCriteria, asOfTime, startingFrom, pageSize, sequencingOrder, sequencingProperty, handler.getMaxPageSize());
-            response = handler.findTerm(userId, findRequest);
+            response = handler.findTerm(userId, findRequest,exactValue, ignoreCase);
         } catch (OCFCheckedExceptionBase e) {
             response.setExceptionInfo(e, className);
         } catch (Exception exception) {
@@ -238,7 +242,7 @@ public class SubjectAreaTermRESTServices extends SubjectAreaRESTServicesInstance
      * @param userId       userId under which the request is performed
      * @param guid         guid of the term to update
      * @param suppliedTerm term to be updated
-     * @param isReplace    flag to indicate that this update is a replace. When not set only the supplied (non null) fields are updated. The GovernanceAction content is always replaced.
+     * @param isReplace    flag to indicate that this update is a replace. When not set only the supplied (non null) fields are updated. The GovernanceClassification content is always replaced.
      * @return a response which when successful contains the updated term
      * when not successful the following Exception responses can occur
      * <ul>

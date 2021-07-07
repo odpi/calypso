@@ -221,6 +221,69 @@ public class AssetOwnerRESTServices
     }
 
 
+    /**
+     * Create a new metadata element to represent an asset using an existing asset as a template.
+     *
+     * @param serverName name of the server instance to connect to
+     * @param userId calling user
+     * @param templateGUID unique identifier of the metadata element to copy
+     * @param requestBody properties that override the template
+     *
+     * @return unique identifier (guid) of the asset or
+     * InvalidParameterException full path or userId is null or
+     * PropertyServerException problem accessing property server or
+     * UserNotAuthorizedException security access problem
+     */
+    public GUIDResponse  addAssetToCatalogUsingTemplate(String             serverName,
+                                                        String             userId,
+                                                        String             templateGUID,
+                                                        TemplateProperties requestBody)
+    {
+        final String methodName = "addAssetToCatalogUsingTemplate";
+        final String templateGUIDParameterName   = "templateGUID";
+        final String qualifiedNameParameterName  = "qualifiedName";
+
+        RESTCallToken token = restCallLogger.logRESTCall(serverName, userId, methodName);
+
+        GUIDResponse response = new GUIDResponse();
+        AuditLog     auditLog = null;
+
+        try
+        {
+            if (requestBody != null)
+            {
+                auditLog = instanceHandler.getAuditLog(userId, serverName, methodName);
+                AssetHandler<AssetElement> handler = instanceHandler.getAssetHandler(userId, serverName, methodName);
+
+                response.setGUID(handler.addAssetFromTemplate(userId,
+                                                                 null,
+                                                                 null,
+                                                                 templateGUID,
+                                                                 templateGUIDParameterName,
+                                                                 OpenMetadataAPIMapper.ASSET_TYPE_GUID,
+                                                                 OpenMetadataAPIMapper.ASSET_TYPE_NAME,
+                                                                 requestBody.getQualifiedName(),
+                                                                 qualifiedNameParameterName,
+                                                                 requestBody.getDisplayName(),
+                                                                 requestBody.getDescription(),
+                                                                 requestBody.getNetworkAddress(),
+                                                                 methodName));
+            }
+            else
+            {
+                restExceptionHandler.handleNoRequestBody(userId, methodName, serverName);
+            }
+        }
+        catch (Exception error)
+        {
+            restExceptionHandler.captureExceptions(response, error, methodName, auditLog);
+        }
+
+        restCallLogger.logRESTCallReturn(token, response.toString());
+        return response;
+    }
+
+
 
     /**
      * Stores the supplied schema details in the catalog and attaches it to the asset.  If another schema is currently
@@ -715,8 +778,8 @@ public class AssetOwnerRESTServices
                                                                           schemaTypeGUID,
                                                                           schemaTypeGUIDParameterName,
                                                                           OpenMetadataAPIMapper.SCHEMA_TYPE_TYPE_NAME,
-                                                                          OpenMetadataAPIMapper.ATTRIBUTE_TO_TYPE_RELATIONSHIP_TYPE_GUID,
-                                                                          OpenMetadataAPIMapper.ATTRIBUTE_TO_TYPE_RELATIONSHIP_TYPE_NAME,
+                                                                          OpenMetadataAPIMapper.TYPE_TO_ATTRIBUTE_RELATIONSHIP_TYPE_GUID,
+                                                                          OpenMetadataAPIMapper.TYPE_TO_ATTRIBUTE_RELATIONSHIP_TYPE_NAME,
                                                                           schemaAttribute.getQualifiedName(),
                                                                           qualifiedNameParameterName,
                                                                           schemaAttributeBuilder,
@@ -1287,7 +1350,9 @@ public class AssetOwnerRESTServices
                                                   String          glossaryTermGUID,
                                                   NullRequestBody requestBody)
     {
-        final String   methodName = "removeSemanticAssignment";
+        final String methodName = "removeSemanticAssignment";
+        final String assetGUIDParameterName = "assetGUID";
+        final String glossaryTermGUIDParameterName = "glossaryTermGUID";
 
         RESTCallToken token = restCallLogger.logRESTCall(serverName, userId, methodName);
 
@@ -1303,7 +1368,9 @@ public class AssetOwnerRESTServices
                                              null,
                                              null,
                                              assetGUID,
+                                             assetGUIDParameterName,
                                              glossaryTermGUID,
+                                             glossaryTermGUIDParameterName,
                                              methodName);
 
         }
@@ -1341,7 +1408,9 @@ public class AssetOwnerRESTServices
                                                   String          assetElementGUID,
                                                   NullRequestBody requestBody)
     {
-        final String   methodName = "removeSemanticAssignment";
+        final String methodName = "removeSemanticAssignment";
+        final String assetElementGUIDParameterName = "assetElementGUID";
+        final String glossaryTermGUIDParameterName = "glossaryTermGUID";
 
         RESTCallToken token = restCallLogger.logRESTCall(serverName, userId, methodName);
 
@@ -1357,7 +1426,9 @@ public class AssetOwnerRESTServices
                                              null,
                                              null,
                                              assetElementGUID,
+                                             assetElementGUIDParameterName,
                                              glossaryTermGUID,
+                                             glossaryTermGUIDParameterName,
                                              methodName);
 
         }
@@ -1630,13 +1701,14 @@ public class AssetOwnerRESTServices
      * PropertyServerException problem accessing property server or
      * UserNotAuthorizedException security access problem
      */
+    @SuppressWarnings(value="deprecation")
     public VoidResponse  updateAssetOwner(String           serverName,
                                           String           userId,
                                           String           assetGUID,
                                           OwnerRequestBody requestBody)
     {
-        final String   assetGUIDParameterName = "assetGUID";
-        final String   methodName = "updateAssetOwner";
+        final String assetGUIDParameterName = "assetGUID";
+        final String methodName = "updateAssetOwner";
 
         RESTCallToken token = restCallLogger.logRESTCall(serverName, userId, methodName);
 
@@ -1650,19 +1722,28 @@ public class AssetOwnerRESTServices
                 auditLog = instanceHandler.getAuditLog(userId, serverName, methodName);
                 AssetHandler<AssetElement> handler = instanceHandler.getAssetHandler(userId, serverName, methodName);
 
-                int ownerType = OwnerType.USER_ID.getOpenTypeOrdinal();
+                String ownerTypeName = requestBody.getOwnerTypeName();
 
-                if (requestBody.getOwnerType() != null)
+                if ((ownerTypeName == null) && (requestBody.getOwnerType() != null))
                 {
-                    ownerType = requestBody.getOwnerType().getOpenTypeOrdinal();
+                    if (requestBody.getOwnerType() == org.odpi.openmetadata.frameworks.connectors.properties.beans.OwnerType.USER_ID)
+                    {
+                        ownerTypeName = OpenMetadataAPIMapper.USER_IDENTITY_TYPE_NAME;
+                    }
+                    else if (requestBody.getOwnerType() == org.odpi.openmetadata.frameworks.connectors.properties.beans.OwnerType.PROFILE_ID)
+                    {
+                        ownerTypeName = OpenMetadataAPIMapper.ACTOR_PROFILE_TYPE_NAME;
+                    }
                 }
 
-                handler.updateAssetOwner(userId,
-                                         assetGUID,
-                                         assetGUIDParameterName,
-                                         requestBody.getOwnerId(),
-                                         ownerType,
-                                         methodName);
+                handler.addOwner(userId,
+                                 assetGUID,
+                                 assetGUIDParameterName,
+                                 OpenMetadataAPIMapper.ASSET_TYPE_NAME,
+                                 requestBody.getOwnerId(),
+                                 ownerTypeName,
+                                 requestBody.getOwnerPropertyName(),
+                                 methodName);
             }
             else
             {
@@ -1909,10 +1990,10 @@ public class AssetOwnerRESTServices
      *  PropertyServerException problem accessing property server or
      *  UserNotAuthorizedException security access problem
      */
-    public VoidResponse addTemplateClassification(String              serverName,
-                                                  String              userId,
-                                                  String              assetGUID,
-                                                  TemplateRequestBody requestBody)
+    public VoidResponse addTemplateClassification(String                            serverName,
+                                                  String                            userId,
+                                                  String                            assetGUID,
+                                                  TemplateClassificationRequestBody requestBody)
     {
         final String methodName = "addTemplateClassification";
         final String assetGUIDParameterName = "assetGUID";
@@ -2383,6 +2464,121 @@ public class AssetOwnerRESTServices
                                            null,
                                            null,
                                            methodName);
+        }
+        catch (Exception error)
+        {
+            restExceptionHandler.captureExceptions(response, error, methodName, auditLog);
+        }
+
+        restCallLogger.logRESTCallReturn(token, response.toString());
+        return response;
+    }
+
+
+
+    /*
+     * ==============================================
+     * AssetDuplicateManagementInterface
+     * ==============================================
+     */
+
+
+    /**
+     * Create a simple relationship between two elements in an Asset description (typically the asset itself or
+     * attributes in their schema).
+     *
+     * @param serverName name of the server instance to connect to
+     * @param userId calling user
+     * @param element1GUID unique identifier of first element
+     * @param element2GUID unique identifier of second element
+     * @param requestBody dummy request body to satisfy POST protocol.
+     *
+     * @return void or
+     *  InvalidParameterException one of the parameters is null or invalid or
+     *  PropertyServerException problem accessing property server or
+     *  UserNotAuthorizedException security access problem
+     */
+    @SuppressWarnings(value = "unused")
+    public VoidResponse  linkElementsAsDuplicates(String          serverName,
+                                                  String          userId,
+                                                  String          element1GUID,
+                                                  String          element2GUID,
+                                                  NullRequestBody requestBody)
+    {
+        final String methodName = "linkElementsAsDuplicates";
+
+        final String element1GUIDParameter = "element1GUID";
+        final String element2GUIDParameter = "element2GUID";
+
+        RESTCallToken token = restCallLogger.logRESTCall(serverName, userId, methodName);
+
+        VoidResponse response = new VoidResponse();
+        AuditLog     auditLog = null;
+
+        try
+        {
+            auditLog = instanceHandler.getAuditLog(userId, serverName, methodName);
+            AssetHandler<AssetElement> handler = instanceHandler.getAssetHandler(userId, serverName, methodName);
+
+            handler.linkElementsAsDuplicates(userId,
+                                             element1GUID,
+                                             element1GUIDParameter,
+                                             element2GUID,
+                                             element2GUIDParameter,
+                                             methodName);
+        }
+        catch (Exception error)
+        {
+            restExceptionHandler.captureExceptions(response, error, methodName, auditLog);
+        }
+
+        restCallLogger.logRESTCallReturn(token, response.toString());
+        return response;
+    }
+
+
+    /**
+     * Remove the relationship between two elements that marks them as duplicates.
+     *
+     * @param serverName name of the server instance to connect to
+     * @param userId calling user
+     * @param element1GUID unique identifier of first element
+     * @param element2GUID unique identifier of second element
+     * @param requestBody dummy request body to satisfy POST protocol.
+     *
+     * @return void or
+     *  InvalidParameterException one of the parameters is null or invalid or
+     *  PropertyServerException problem accessing property server or
+     *  UserNotAuthorizedException security access problem
+     */
+    @SuppressWarnings(value = "unused")
+    public VoidResponse  unlinkElementsAsDuplicates(String          serverName,
+                                                    String          userId,
+                                                    String          element1GUID,
+                                                    String          element2GUID,
+                                                    NullRequestBody requestBody)
+    {
+        final String methodName = "unlinkElementsAsDuplicates";
+
+        final String element1GUIDParameter = "element1GUID";
+        final String element2GUIDParameter = "element2GUID";
+
+        RESTCallToken token = restCallLogger.logRESTCall(serverName, userId, methodName);
+
+        VoidResponse response = new VoidResponse();
+        AuditLog     auditLog = null;
+
+        try
+        {
+            auditLog = instanceHandler.getAuditLog(userId, serverName, methodName);
+            AssetHandler<AssetElement> handler = instanceHandler.getAssetHandler(userId, serverName, methodName);
+
+            handler.unlinkElementsAsDuplicates(userId,
+                                               element1GUID,
+                                               element1GUIDParameter,
+                                               element2GUID,
+                                               element2GUIDParameter,
+                                               methodName);
         }
         catch (Exception error)
         {

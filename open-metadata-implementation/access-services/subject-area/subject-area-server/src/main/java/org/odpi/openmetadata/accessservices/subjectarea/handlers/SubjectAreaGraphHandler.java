@@ -3,12 +3,13 @@
 package org.odpi.openmetadata.accessservices.subjectarea.handlers;
 
 import org.apache.commons.collections4.CollectionUtils;
+import org.odpi.openmetadata.accessservices.subjectarea.ffdc.exceptions.InvalidParameterException;
 import org.odpi.openmetadata.accessservices.subjectarea.ffdc.exceptions.SubjectAreaCheckedException;
 import org.odpi.openmetadata.accessservices.subjectarea.properties.enums.Status;
 import org.odpi.openmetadata.accessservices.subjectarea.properties.enums.StatusFilter;
 import org.odpi.openmetadata.accessservices.subjectarea.properties.objects.graph.*;
 import org.odpi.openmetadata.accessservices.subjectarea.responses.SubjectAreaOMASAPIResponse;
-import org.odpi.openmetadata.accessservices.subjectarea.server.mappers.graph.LineTypeMapper;
+import org.odpi.openmetadata.accessservices.subjectarea.server.mappers.graph.RelationshipTypeMapper;
 import org.odpi.openmetadata.accessservices.subjectarea.server.mappers.graph.NodeTypeMapper;
 import org.odpi.openmetadata.accessservices.subjectarea.utilities.OMRSAPIHelper;
 import org.odpi.openmetadata.accessservices.subjectarea.utilities.SubjectAreaUtils;
@@ -36,30 +37,30 @@ public class SubjectAreaGraphHandler extends SubjectAreaHandler {
      * Construct the Subject Area Graph Handler
      * needed to operate within a single server instance.
      *
-     * @param oMRSAPIHelper           omrs API helper
-     * @param maxPageSize             maximum page size
+     * @param oMRSAPIHelper omrs API helper
+     * @param maxPageSize   maximum page size
      */
     public SubjectAreaGraphHandler(OMRSAPIHelper oMRSAPIHelper, int maxPageSize) {
         super(oMRSAPIHelper, maxPageSize);
     }
 
     /**
-     * Get the graph of nodes and Lines radiating out from a node.
+     * Get the graph of nodes and relationships radiating out from a node.
      * <p>
-     * Return the nodes and Lines that radiate out from the supplied node (identified by a GUID).
-     * The results are scoped by types of Lines, types of nodes and classifications as well as level.
+     * Return the nodes and relationships that radiate out from the supplied node (identified by a GUID).
+     * The results are scoped by types of relationships, types of nodes and classifications as well as level.
      *
-     * @param userId        userId under which the request is performed
-     * @param guid          the starting point of the query.
-     * @param nodeFilterStr Comma separated list of node names to include in the query results.  Null means include
-     *                      all entities found, irrespective of their type.
-     * @param lineFilterStr comma separated list of line names to include in the query results.  Null means include
-     *                      all Lines found, irrespective of their type.
-     * @param asOfTime      Requests a historical query of the relationships for the entity.  Null means return the
-     *                      present values.
-     * @param statusFilter  By default only active instances are returned. Specify ALL to see all instance in any status.
-     * @param level         the number of the Lines (relationships) out from the starting node that the query will traverse to
-     *                      gather results. If not specified then it defaults to 3.
+     * @param userId                userId under which the request is performed
+     * @param guid                  the starting point of the query.
+     * @param nodeFilterStr         Comma separated list of node names to include in the query results.  Null means include
+     *                              all entities found, irrespective of their type.
+     * @param relationshipFilterStr comma separated list of relationship names to include in the query results.  Null means include
+     *                              all relationships found, irrespective of their type.
+     * @param asOfTime              Requests a historical query of the relationships for the entity.  Null means return the
+     *                              present values.
+     * @param statusFilter          By default only active instances are returned. Specify ALL to see all instance in any status.
+     * @param level                 the number of the relationships (relationships) out from the starting node that the query will traverse to
+     *                              gather results. If not specified then it defaults to 3.
      * @return A graph of nodeTypes.
      *
      * <ul>
@@ -74,7 +75,7 @@ public class SubjectAreaGraphHandler extends SubjectAreaHandler {
                                                       String guid,
                                                       Date asOfTime,
                                                       String nodeFilterStr,
-                                                      String lineFilterStr,
+                                                      String relationshipFilterStr,
                                                       StatusFilter statusFilter,   // may need to extend this for controlled terms
                                                       Integer level) {
 
@@ -100,21 +101,32 @@ public class SubjectAreaGraphHandler extends SubjectAreaHandler {
                     userId,
                     guid,
                     getEntityGuids(nodeFilterStr),
-                    getRelationshipTypeGuids(lineFilterStr),
+                    getRelationshipTypeGuids(methodName, relationshipFilterStr),
                     requestedInstanceStatus,
                     null,
                     asOfTime,
                     level
-            );
+                                                                                  );
             Graph graph = new Graph();
+            graph.setRootNodeGuid(guid);
+            graph.setNodeFilter(nodeFilterStr);
+            graph.setRelationshipFilter(relationshipFilterStr);
             if (CollectionUtils.isNotEmpty(instanceGraph.getRelationships())) {
-                List<Line> lines = getLinesFromRelationships(instanceGraph.getRelationships());
-                graph.setLines(new HashSet<>(lines));
+                List<Relationship> relationships = getRelationshipsFromRelationships(instanceGraph.getRelationships());
+                Map<String, Relationship> guidToRelationshipMap = new HashMap<>();
+                for (Relationship relationship : relationships) {
+                    guidToRelationshipMap.put(relationship.getSystemAttributes().getGUID(), relationship);
+                }
+                graph.setRelationships(guidToRelationshipMap);
             }
 
             if (CollectionUtils.isNotEmpty(instanceGraph.getEntities())) {
                 List<Node> nodes = getNodesFromEntityDetails(instanceGraph.getEntities());
-                graph.setNodes(new HashSet<>(nodes));
+                Map<String, Node> guidToNodeMap = new HashMap<>();
+                for (Node node : nodes) {
+                    guidToNodeMap.put(node.getSystemAttributes().getGUID(), node);
+                }
+                graph.setNodes(guidToNodeMap);
             }
             // end of if after getEntityNeighbourhood call
             response.addResult(graph);
@@ -129,7 +141,7 @@ public class SubjectAreaGraphHandler extends SubjectAreaHandler {
         // so we only get the types that this omas is interested in.
         Stream<NodeType> nodeTypeStream = Arrays.stream(NodeType.values());
         if (nodeFilterStr == null) {
-           return nodeTypeStream
+            return nodeTypeStream
                     .filter(type -> type != NodeType.Unknown)
                     .map(NodeTypeMapper::mapNodeTypeToEntityTypeGuid)
                     .collect(toList());
@@ -145,23 +157,33 @@ public class SubjectAreaGraphHandler extends SubjectAreaHandler {
         }
     }
 
-    private List<String> getRelationshipTypeGuids(String lineFilterStr) {
-        // if there was no Line filter supplied then limit to the the LineType values,
+    private List<String> getRelationshipTypeGuids(String operation, String relationshipFilterStr) throws InvalidParameterException {
+        // if there was no relationship filter supplied then limit to the the relationshipType values,
         // so we only get the types that this omas is interested in.
-        Stream<LineType> lineTypeStream = Arrays.stream(LineType.values());
-        if (lineFilterStr == null) {
-          return lineTypeStream
-                    .filter(type -> type != LineType.Unknown)
-                    .map(LineTypeMapper::mapLineTypeToRelationshipTypeGuid)
-                    .collect(toList());
+        Stream<RelationshipType> relationshipTypeStream = Arrays.stream(RelationshipType.values());
+        List<String> relationshipTypeGuids = new ArrayList<>();
+        Set<RelationshipType> relationshipTypes = new HashSet<>();
+
+        if (relationshipFilterStr == null) {
+            relationshipTypes = new HashSet(Arrays.asList(RelationshipType.values()));
         } else {
-            Set<String> typeNames = lineTypeStream.map(LineType::name).collect(Collectors.toSet());
-            return Arrays.stream(lineFilterStr.split(","))
-                    .filter(typeNames::contains)
-                    .map(LineType::valueOf)
-                    .map(LineTypeMapper::mapLineTypeToRelationshipTypeGuid)
-                    .distinct()
-                    .collect(toList());
+            String[] relationshipStringArray = relationshipFilterStr.split(",");
+            for (String relationshipString : relationshipStringArray) {
+                RelationshipType relationshipType = RelationshipType.valueOf(relationshipString);
+                if (relationshipType == null) {
+                    // error
+                } else {
+                    relationshipTypes.add(relationshipType);
+                }
+            }
         }
+        for (RelationshipType type : relationshipTypes) {
+            if (type != RelationshipType.Unknown) {
+                String guid = RelationshipTypeMapper.mapOMASRelationshipTypeToOMRSRelationshipTypeGuid(operation, type);
+                relationshipTypeGuids.add(guid);
+            }
+        }
+
+        return relationshipTypeGuids;
     }
 }

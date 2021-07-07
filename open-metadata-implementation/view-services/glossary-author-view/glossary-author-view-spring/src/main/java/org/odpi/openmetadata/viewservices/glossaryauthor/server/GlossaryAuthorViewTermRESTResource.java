@@ -6,7 +6,7 @@ package org.odpi.openmetadata.viewservices.glossaryauthor.server;
 import io.swagger.v3.oas.annotations.ExternalDocumentation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.odpi.openmetadata.accessservices.subjectarea.properties.objects.category.Category;
-import org.odpi.openmetadata.accessservices.subjectarea.properties.objects.graph.Line;
+import org.odpi.openmetadata.accessservices.subjectarea.properties.objects.graph.Relationship;
 import org.odpi.openmetadata.accessservices.subjectarea.properties.objects.term.Term;
 import org.odpi.openmetadata.accessservices.subjectarea.responses.SubjectAreaOMASAPIResponse;
 import org.odpi.openmetadata.repositoryservices.connectors.stores.metadatacollectionstore.properties.SequencingOrder;
@@ -89,7 +89,9 @@ public class GlossaryAuthorViewTermRESTResource {
      *
      * @param serverName         local UI server name
      * @param userId             userid
-     * @param searchCriteria     String expression matching Term property values .
+     * @param searchCriteria     String expression matching Term property values.
+     * @param exactValue a boolean, which when set means that only exact matches will be returned, otherwise matches that start with the search criteria will be returned.
+     * @param ignoreCase a boolean, which when set means that case will be ignored, if not set that case will be respected
      * @param asOfTime           the terms returned as they were at this time. null indicates at the current time.
      * @param startingFrom          the starting element number for this set of results.  This is used when retrieving elements
      *                           beyond the first page of results. Zero means the results start from the first element.
@@ -107,13 +109,15 @@ public class GlossaryAuthorViewTermRESTResource {
     @GetMapping()
     public SubjectAreaOMASAPIResponse<Term> findTerm(@PathVariable String serverName, @PathVariable String userId,
                                                      @RequestParam(value = "searchCriteria", required = false) String searchCriteria,
+                                                     @RequestParam(value = "exactValue", required = false, defaultValue = "false") Boolean exactValue,
+                                                     @RequestParam(value = "ignoreCase", required = false, defaultValue = "true") Boolean ignoreCase,
                                                      @RequestParam(value = "asOfTime", required = false) Date asOfTime,
                                                      @RequestParam(value = "startingFrom", required = false) Integer startingFrom,
                                                      @RequestParam(value = "pageSize", required = false) Integer pageSize,
                                                      @RequestParam(value = "sequencingOrder", required = false) SequencingOrder sequencingOrder,
                                                      @RequestParam(value = "sequencingProperty", required = false) String sequencingProperty
     ) {
-        return restAPI.findTerm(serverName, userId, asOfTime, searchCriteria, startingFrom, pageSize, sequencingOrder, sequencingProperty);
+        return restAPI.findTerm(serverName, userId, asOfTime, searchCriteria, exactValue, ignoreCase, startingFrom, pageSize, sequencingOrder, sequencingProperty);
     }
 
     /**
@@ -137,15 +141,15 @@ public class GlossaryAuthorViewTermRESTResource {
      * </ul>
      */
     @GetMapping(path = "/{guid}/relationships")
-    public SubjectAreaOMASAPIResponse<Line> getTermRelationships(@PathVariable String serverName, @PathVariable String userId,
-                                                                 @PathVariable String guid,
-                                                                 @RequestParam(value = "asOfTime", required = false) Date asOfTime,
-                                                                 @RequestParam(value = "startingFrom", required = false) Integer startingFrom,
-                                                                 @RequestParam(value = "pageSize", required = false) Integer pageSize,
-                                                                 @RequestParam(value = "sequencingOrder", required = false) SequencingOrder sequencingOrder,
-                                                                 @RequestParam(value = "sequencingProperty", required = false) String sequencingProperty
+    public SubjectAreaOMASAPIResponse<Relationship> getTermRelationships(@PathVariable String serverName, @PathVariable String userId,
+                                                                         @PathVariable String guid,
+                                                                         @RequestParam(value = "asOfTime", required = false) Date asOfTime,
+                                                                         @RequestParam(value = "startingFrom", required = false) Integer startingFrom,
+                                                                         @RequestParam(value = "pageSize", required = false) Integer pageSize,
+                                                                         @RequestParam(value = "sequencingOrder", required = false) SequencingOrder sequencingOrder,
+                                                                         @RequestParam(value = "sequencingProperty", required = false) String sequencingProperty
 
-    ) {
+                                                                        ) {
         return restAPI.getTermRelationships(serverName, userId, guid, asOfTime, startingFrom, pageSize, sequencingOrder, sequencingProperty);
     }
 

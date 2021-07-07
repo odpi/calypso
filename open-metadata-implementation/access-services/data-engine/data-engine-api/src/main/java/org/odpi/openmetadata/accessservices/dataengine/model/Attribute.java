@@ -5,9 +5,12 @@ package org.odpi.openmetadata.accessservices.dataengine.model;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 
-import java.io.Serializable;
-import java.util.Objects;
+import java.util.List;
 
 import static com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.NONE;
 import static com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.PUBLIC_ONLY;
@@ -18,256 +21,245 @@ import static com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.PUBLIC_
 @JsonAutoDetect(getterVisibility = PUBLIC_ONLY, setterVisibility = PUBLIC_ONLY, fieldVisibility = NONE)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class Attribute implements Serializable {
-    private static final long serialVersionUID = 1L;
-    private String qualifiedName;
+@Getter
+@Setter
+@EqualsAndHashCode(callSuper = true)
+@ToString
+public class Attribute extends Referenceable {
+
+    /**
+     * The simple name of the schema element
+     * -- GETTER --
+     * Return the simple name of the schema element.
+     * @return displayName string name
+     * -- SETTER --
+     * Set up the simple name of the schema element.
+     * @param displayName String display name
+     */
     private String displayName;
-    private int minCardinality;
-    private int maxCardinality;
-    private boolean allowsDuplicateValues;
-    private boolean orderedValues;
+
+    /**
+     * The stored description property for the schema element
+     * -- GETTER --
+     * Returns the stored description property for the schema element.
+     * @return description string description
+     * -- SETTER --
+     * Set up the stored description property for the schema element.
+     * @param description string description
+     */
+    private String description;
+
+    /**
+     * Indicates if the schema element is deprecated
+     * -- GETTER --
+     * Returns true if the schema element deprecated
+     * @return isDeprecated boolean flag
+     * -- SETTER --
+     * Set whether the schema element deprecated or not.  Default is false.
+     * @param isDeprecated boolean flag
+     */
+    private boolean isDeprecated;
+
+    /**
+     * The position of this schema attribute in its parent schema
+     * -- GETTER --
+     * Return the position of this schema attribute in its parent schema.
+     * @return position int position in schema - 0 means first
+     * -- SETTER --
+     * Set up the position of this schema attribute in its parent schema.
+     * @param position int position in schema - 0 means first
+     */
     private int position;
+
+    /**
+     * This minimum number of instances allowed for this attribute
+     * -- GETTER --
+     * Return this minimum number of instances allowed for this attribute.
+     * @return minCardinality int
+     * -- SETTER --
+     * Set up the minimum number of instances allowed for this attribute.
+     * @param minCardinality int
+     */
+    private int minCardinality;
+
+    /**
+     * The maximum number of instances allowed for this attribute
+     * -- GETTER --
+     * Return the maximum number of instances allowed for this attribute.
+     * @return maxCardinality int (-1 means infinite)
+     * -- SETTER --
+     * Set up the maximum number of instances allowed for this attribute.
+     * @param maxCardinality int (-1 means infinite)
+     */
+    private int maxCardinality;
+
+    /**
+     * Indicates whether the same value can be used by more than one instance of this attribute
+     * -- GETTER --
+     * Return whether the same value can be used by more than one instance of this attribute.
+     * @return allowsDuplicateValues boolean flag
+     * -- SETTER --
+     * Set up whether the same value can be used by more than one instance of this attribute.
+     * @param allowsDuplicateValues boolean flag
+     */
+    private boolean allowsDuplicateValues;
+
+    /**
+     * Indicates whether the attribute instances are arranged in an order
+     * -- GETTER --
+     * Return whether the attribute instances are arranged in an order.
+     * @return orderedValues boolean flag
+     * -- SETTER --
+     * Set up whether the attribute instances are arranged in an order.
+     * @param orderedValues boolean flag
+     */
+    private boolean orderedValues;
+
+    /**
+     * Default value override
+     * -- GETTER --
+     * Return any default value for this attribute that would override the default defined in the
+     * schema element for this attribute's type (note only used is type is primitive).
+     * @return String default value override
+     * -- SETTER --
+     * Set up any default value for this attribute that would override the default defined in the
+     * schema element for this attribute's type (note only used is type is primitive).
+     * @param defaultValueOverride String default value override
+     */
     private String defaultValueOverride;
+
+    /**
+     * The order that the attribute instances are arranged in
+     * -- GETTER --
+     * Return the order that the attribute instances are arranged in - if any.
+     * @return DataItemSortOrder enum
+     * -- SETTER --
+     * Set up the order that the attribute instances are arranged in - if any.
+     * @param sortOrder DataItemSortOrder enum
+     */
+    private DataItemSortOrder sortOrder;
+
+    /**
+     * The minimum length of the data
+     * -- GETTER --
+     * Return the minimum length of the data.
+     * @return int
+     * -- SETTER --
+     * Set up the minimum length of the data.
+     * @param minimumLength int
+     */
+    private int minimumLength;
+
+    /**
+     * The length of the data field
+     * -- GETTER --
+     * Return the length of the data field.
+     * @return int
+     * -- SETTER --
+     * Set up the length of the data field.
+     * @param length int
+     */
+    private int length;
+
+    /**
+     * The number of significant digits to the right of decimal point
+     * -- GETTER --
+     * Return the number of significant digits to the right of decimal point.
+     * @return int
+     * -- SETTER --
+     * Set up the number of significant digits to the right of decimal point.
+     * @param precision int
+     */
+    private int precision;
+
+    /**
+     * Indicates whether the field is nullable or not
+     * -- GETTER --
+     * Return whether the field is nullable or not.
+     * @return boolean
+     * -- SETTER --
+     * Set up whether the field is nullable or not.
+     * @param isNullable boolean
+     */
+    private boolean isNullable;
+
+    /**
+     * The name of the Java class to use to represent this type
+     * -- GETTER --
+     * Return the name of the Java class to use to represent this type.
+     * @return fully qualified Java class name
+     * -- SETTER --
+     * Set up the name of the Java class to use to represent this type.
+     * @param nativeClass fully qualified Java class name
+     */
+    private String nativeClass;
+
+    /**
+     * A list of alternative names for the attribute
+     * -- GETTER --
+     * Return a list of alternative names for the attribute.
+     * @return list of names
+     * -- SETTER --
+     * Set up a list of alternative names for the attribute.
+     * @param aliases list of names
+     */
+    private List<String> aliases;
+
+    /**
+     * The data type for this element
+     * -- GETTER --
+     * Return the data type for this element.  Null means unknown data type.
+     * @return string data type name
+     * -- SETTER --
+     * Set up the data type for this element.  Null means unknown data type.
+     * @param dataType data type name
+     */
     private String dataType;
+
+    /**
+     * The default value for the element
+     * -- GETTER --
+     * Return the default value for the element.  Null means no default value set up.
+     * @return string containing default value
+     * -- SETTER --
+     * Set up the default value for the element.  Null means no default value set up.
+     * @param defaultValue String containing default value
+     */
     private String defaultValue;
-    private String anchorGUID;
 
     /**
-     * Gets qualified name.
-     *
-     * @return the qualified name
+     * A fixed literal value - an alternative to default value
+     * -- GETTER --
+     * Return a fixed literal value - an alternative to default value.
+     * @return string value
+     * -- SETTER --
+     * If the column contains a fixed literal value, set this value here - an alternative to default value.
+     * @param fixedValue string
      */
-    public String getQualifiedName() {
-        return qualifiedName;
-    }
+    private String fixedValue;
 
     /**
-     * Sets qualified name.
-     *
-     * @param qualifiedName the qualified name
+     * The unique identifier of this column's type
+     * -- GETTER --
+     * Return the unique identifier of this column's type.
+     * @return unique identifier (guid) of the external schema type
+     * -- SETTER --
+     * If the type of this column is represented by an external (standard type) put its value here.  No need to set
+     * dataType, FixedType or defaultType
+     * @param externalTypeGUID unique identifier (guid) of the external schema type
      */
-    public void setQualifiedName(String qualifiedName) {
-        this.qualifiedName = qualifiedName;
-    }
+    private String externalTypeGUID;
 
     /**
-     * Gets display name.
-     *
-     * @return the display name
+     * The set of valid values for this column
+     * -- GETTER --
+     * Return the set of valid values for this column.
+     * @return unique identifier (guid) of the valid values set
+     * -- SETTER --
+     * If the type is controlled by a fixed set of values, set up the unique identifier of the valid values set
+     * that lists the valid values.
+     * @param validValuesSetGUID unique identifier (guid) of the valid values set
      */
-    public String getDisplayName() {
-        return displayName;
-    }
+    private String validValuesSetGUID;
 
-    /**
-     * Sets display name.
-     *
-     * @param displayName the display name
-     */
-    public void setDisplayName(String displayName) {
-        this.displayName = displayName;
-    }
-
-    /**
-     * Gets min cardinality.
-     *
-     * @return the min cardinality
-     */
-    public int getMinCardinality() {
-        return minCardinality;
-    }
-
-    /**
-     * Sets min cardinality.
-     *
-     * @param minCardinality the min cardinality
-     */
-    public void setMinCardinality(int minCardinality) {
-        this.minCardinality = minCardinality;
-    }
-
-    /**
-     * Gets max cardinality.
-     *
-     * @return the max cardinality
-     */
-    public int getMaxCardinality() {
-        return maxCardinality;
-    }
-
-    /**
-     * Sets max cardinality.
-     *
-     * @param maxCardinality the max cardinality
-     */
-    public void setMaxCardinality(int maxCardinality) {
-        this.maxCardinality = maxCardinality;
-    }
-
-    /**
-     * Gets allows duplicate values.
-     *
-     * @return the allows duplicate values
-     */
-    public boolean getAllowsDuplicateValues() {
-        return allowsDuplicateValues;
-    }
-
-    /**
-     * Sets allows duplicate values.
-     *
-     * @param allowsDuplicateValues the allows duplicate values
-     */
-    public void setAllowsDuplicateValues(boolean allowsDuplicateValues) {
-        this.allowsDuplicateValues = allowsDuplicateValues;
-    }
-
-    /**
-     * Gets ordered values.
-     *
-     * @return the ordered values
-     */
-    public boolean getOrderedValues() {
-        return orderedValues;
-    }
-
-    /**
-     * Sets ordered values.
-     *
-     * @param orderedValues the ordered values
-     */
-    public void setOrderedValues(boolean orderedValues) {
-        this.orderedValues = orderedValues;
-    }
-
-    /**
-     * Gets position.
-     *
-     * @return the position
-     */
-    public int getPosition() {
-        return position;
-    }
-
-    /**
-     * Sets position.
-     *
-     * @param position the position
-     */
-    public void setPosition(int position) {
-        this.position = position;
-    }
-
-    /**
-     * Gets default value override.
-     *
-     * @return the default value override
-     */
-    public String getDefaultValueOverride() {
-        return defaultValueOverride;
-    }
-
-    /**
-     * Sets default value override.
-     *
-     * @param defaultValueOverride the default value override
-     */
-    public void setDefaultValueOverride(String defaultValueOverride) {
-        this.defaultValueOverride = defaultValueOverride;
-    }
-
-    /**
-     * Gets data type.
-     *
-     * @return the data type
-     */
-    public String getDataType() {
-        return dataType;
-    }
-
-    /**
-     * Sets data type.
-     *
-     * @param dataType the data type
-     */
-    public void setDataType(String dataType) {
-        this.dataType = dataType;
-    }
-
-    /**
-     * Gets default value.
-     *
-     * @return the default value
-     */
-    public String getDefaultValue() {
-        return defaultValue;
-    }
-
-    /**
-     * Sets default value.
-     *
-     * @param defaultValue the default value
-     */
-    public void setDefaultValue(String defaultValue) {
-        this.defaultValue = defaultValue;
-    }
-
-    /**
-     * Gets anchor guid.
-     *
-     * @return the anchor guid
-     */
-    public String getAnchorGUID() {
-        return anchorGUID;
-    }
-
-    /**
-     * Sets anchor guid.
-     *
-     * @param anchorGUID the anchor guid
-     */
-    public void setAnchorGUID(String anchorGUID) {
-        this.anchorGUID = anchorGUID;
-    }
-
-    @Override
-    public String toString() {
-        return "Attribute{" +
-                "qualifiedName='" + qualifiedName + '\'' +
-                ", displayName='" + displayName + '\'' +
-                ", minCardinality='" + minCardinality + '\'' +
-                ", maxCardinality='" + maxCardinality + '\'' +
-                ", allowsDuplicateValues='" + allowsDuplicateValues + '\'' +
-                ", orderedValues='" + orderedValues + '\'' +
-                ", position='" + position + '\'' +
-                ", defaultValueOverride='" + defaultValueOverride + '\'' +
-                ", dataType='" + dataType + '\'' +
-                ", defaultValue='" + defaultValue + '\'' +
-                ", anchorGUID='" + anchorGUID + '\'' +
-                '}';
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Attribute attribute = (Attribute) o;
-        return Objects.equals(qualifiedName, attribute.qualifiedName) &&
-                Objects.equals(displayName, attribute.displayName) &&
-                Objects.equals(minCardinality, attribute.minCardinality) &&
-                Objects.equals(maxCardinality, attribute.maxCardinality) &&
-                Objects.equals(allowsDuplicateValues, attribute.allowsDuplicateValues) &&
-                Objects.equals(orderedValues, attribute.orderedValues) &&
-                Objects.equals(position, attribute.position) &&
-                Objects.equals(defaultValueOverride, attribute.defaultValueOverride) &&
-                Objects.equals(dataType, attribute.dataType) &&
-                Objects.equals(defaultValue, attribute.defaultValue) &&
-                Objects.equals(anchorGUID, attribute.anchorGUID);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(qualifiedName, displayName, minCardinality, maxCardinality, allowsDuplicateValues,
-                orderedValues, position, defaultValueOverride, dataType, defaultValue, anchorGUID);
-    }
 }
